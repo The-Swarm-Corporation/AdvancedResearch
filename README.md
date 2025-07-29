@@ -477,7 +477,7 @@ If you use this work in your research, please cite both the original paper and t
 
 @software{advancedresearch2024,
     title={AdvancedResearch: Enhanced Multi-Agent Research System},
-    author={Kye Gomez and The Swarm Corporation},
+    author={The Swarm Corporation},
     year={2024},
     url={https://github.com/The-Swarm-Corporation/AdvancedResearch},
     note={Implementation based on Anthropic's multi-agent research system paper}
@@ -504,19 +504,6 @@ If you use this work in your research, please cite both the original paper and t
 - **Email**: kye@apac.ai
 - **Discord**: [Join our community](https://discord.gg/swarms-999382051935506503)
 
-## 📈 Roadmap
-
-- [ ] **Enhanced Tool Integration**: Google Scholar, PubMed, ArXiv specialized search
-- [ ] **Vector Database Memory**: Persistent long-term memory across research sessions  
-- [ ] **Advanced Visualization**: Research flow diagrams and knowledge graphs
-- [ ] **Multi-Language Support**: Research in multiple languages with auto-translation
-- [ ] **Custom Model Fine-tuning**: Domain-specific research specialization
-- [ ] **Real-time Collaboration**: Multi-user research sessions with shared workspaces
-- [ ] **API Service**: RESTful API for enterprise integration
-- [ ] **Web Interface**: Browser-based research dashboard
-
----
-
 <p align="center">
-  <strong>Built with <a href="https://github.com/kyegomez/swarms">Swarms</a> for autonomous, high-performance AI research</strong>
+  <strong>Built with <a href="https://github.com/kyegomez/swarms">Swarms</a> framework for production-grade agentic applications </strong>
 </p>
