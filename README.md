@@ -368,14 +368,6 @@ for result in results["subagent_results"]:
     print(f"  Iteration: {result.get('iteration', 'N/A')}")
 ```
 
-## 📊 Performance Achievements
-
-- **📈 90.2% improvement** over single-agent systems
-- **⚡ 90% time reduction** for complex queries through parallel execution
-- **🎯 Advanced targeting** with LLM-as-judge evaluation
-- **🔄 Iterative refinement** with gap identification and adaptive strategies
-- **📚 Professional citations** with quality assessment and intelligent descriptions
-
 ## 🛠️ Real-World Examples
 
 ### Healthcare AI Research
@@ -430,58 +422,6 @@ for topic in topics:
     print(f"Sources: {result['source_analysis']['total_sources']}")
 ```
 
-## 🛡️ Enterprise Usage
-
-### Batch Processing and Automation
-
-```python
-from advancedresearch import AdvancedResearch
-import asyncio
-from datetime import datetime
-
-class ResearchPipeline:
-    def __init__(self):
-        self.research_system = AdvancedResearch(
-            max_iterations=3,
-            max_workers=8,
-            enable_parallel_execution=True,
-            memory_optimization=True
-        )
-    
-    def batch_research(self, queries: list, output_dir: str = "research_reports"):
-        """Process multiple research queries in batch."""
-        results = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        for i, query in enumerate(queries, 1):
-            print(f"Processing query {i}/{len(queries)}: {query[:50]}...")
-            
-            result = self.research_system.research(
-                query,
-                export=True,
-                export_path=f"{output_dir}/report_{timestamp}_{i:03d}.md"
-            )
-            
-            results.append({
-                "query": query,
-                "metrics": result["execution_metrics"],
-                "exported_to": result["research_metadata"]["exported_to"]
-            })
-        
-        return results
-
-# Usage
-pipeline = ResearchPipeline()
-research_topics = [
-    "Impact of GDPR on AI development in Europe",
-    "Sustainable AI computing and green data centers",
-    "Federated learning for privacy-preserving AI"
-]
-
-batch_results = pipeline.batch_research(research_topics)
-for result in batch_results:
-    print(f"✅ {result['query'][:40]}... -> {result['exported_to']}")
-```
 
 ## 🤝 Contributing
 
