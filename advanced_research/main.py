@@ -1812,119 +1812,119 @@ If this error persists, please contact the system administrator with the error d
             logger.error(f"❌ Failed to export report to {file_path}: {e}")
             raise
 
-# --- Main Execution ---
-if __name__ == "__main__":
-    try:
-        # Initialize Advanced Research System with paper specifications
-        research_system = AdvancedResearch(
-            model_name="claude-3-7-sonnet-20250219",
-            max_iterations=3,
-            max_workers=5,
-            enable_parallel_execution=True,
-            memory_optimization=True
-        )
+# # --- Main Execution ---
+# if __name__ == "__main__":
+#     try:
+#         # Initialize Advanced Research System with paper specifications
+#         research_system = AdvancedResearch(
+#             model_name="claude-3-7-sonnet-20250219",
+#             max_iterations=3,
+#             max_workers=5,
+#             enable_parallel_execution=True,
+#             memory_optimization=True
+#         )
 
-        # Example research query demonstrating system capabilities
-        user_query = "What are the benefits and risks of using AI in healthcare, and what are the primary ethical considerations?"
+#         # Example research query demonstrating system capabilities
+#         user_query = "What are the benefits and risks of using AI in healthcare, and what are the primary ethical considerations?"
         
-        logger.info("🚀 Starting Advanced Research System demonstration")
+#         logger.info("🚀 Starting Advanced Research System demonstration")
         
-        # Example usage with export functionality:
-        # final_result = research_system.research(user_query, export=True, export_path="custom_report.md")
-        # Or with auto-generated filename:
-        # final_result = research_system.research(user_query, export=True)
+#         # Example usage with export functionality:
+#         # final_result = research_system.research(user_query, export=True, export_path="custom_report.md")
+#         # Or with auto-generated filename:
+#         # final_result = research_system.research(user_query, export=True)
         
-        final_result = research_system.research(user_query, export=True, export_path="ai_healthcare_research_report.md")
+#         final_result = research_system.research(user_query, export=True, export_path="ai_healthcare_research_report.md")
 
-        # Display comprehensive results
-        print("\n" + "=" * 100)
-        print("                    🎯 ADVANCED RESEARCH SYSTEM RESULTS")
-        print("=" * 100 + "\n")
+#         # Display comprehensive results
+#         print("\n" + "=" * 100)
+#         print("                    🎯 ADVANCED RESEARCH SYSTEM RESULTS")
+#         print("=" * 100 + "\n")
         
-        # Research Strategy Analysis
-        strategy = final_result.get("research_strategy", {})
-        print("🧠 RESEARCH STRATEGY ANALYSIS:")
-        print(f"   Strategy Type: {strategy.get('strategy_type', 'N/A')}")
-        print(f"   Query Complexity: {strategy.get('complexity_score', 'N/A')}/10")
-        print(f"   Tasks Executed: {strategy.get('tasks_executed', 'N/A')}")
+#         # Research Strategy Analysis
+#         strategy = final_result.get("research_strategy", {})
+#         print("🧠 RESEARCH STRATEGY ANALYSIS:")
+#         print(f"   Strategy Type: {strategy.get('strategy_type', 'N/A')}")
+#         print(f"   Query Complexity: {strategy.get('complexity_score', 'N/A')}/10")
+#         print(f"   Tasks Executed: {strategy.get('tasks_executed', 'N/A')}")
         
-        # Execution Performance Metrics
-        metrics = final_result.get("execution_metrics", {})
-        print(f"\n⚡ EXECUTION PERFORMANCE:")
-        print(f"   Total Time: {metrics.get('total_time', 0):.2f}s")
-        print(f"   Agents Spawned: {metrics.get('agents_spawned', 0)}")
-        print(f"   Parallel Efficiency: {metrics.get('parallel_efficiency', 0):.1%}")
-        print(f"   Synthesis Quality: {metrics.get('synthesis_quality', 0):.2f}")
-        print(f"   Citation Accuracy: {metrics.get('citation_accuracy', 0):.2f}")
+#         # Execution Performance Metrics
+#         metrics = final_result.get("execution_metrics", {})
+#         print(f"\n⚡ EXECUTION PERFORMANCE:")
+#         print(f"   Total Time: {metrics.get('total_time', 0):.2f}s")
+#         print(f"   Agents Spawned: {metrics.get('agents_spawned', 0)}")
+#         print(f"   Parallel Efficiency: {metrics.get('parallel_efficiency', 0):.1%}")
+#         print(f"   Synthesis Quality: {metrics.get('synthesis_quality', 0):.2f}")
+#         print(f"   Citation Accuracy: {metrics.get('citation_accuracy', 0):.2f}")
         
-        # Source Quality Analysis
-        sources = final_result.get("source_analysis", {})
-        print(f"\n📊 SOURCE QUALITY ANALYSIS:")
-        print(f"   Total Sources: {sources.get('total_sources', 0)}")
-        print(f"   Average Quality: {sources.get('average_quality', 0):.2f}")
-        print(f"   Citations Added: {sources.get('citation_count', 0)}")
+#         # Source Quality Analysis
+#         sources = final_result.get("source_analysis", {})
+#         print(f"\n📊 SOURCE QUALITY ANALYSIS:")
+#         print(f"   Total Sources: {sources.get('total_sources', 0)}")
+#         print(f"   Average Quality: {sources.get('average_quality', 0):.2f}")
+#         print(f"   Citations Added: {sources.get('citation_count', 0)}")
         
-        # Performance Comparison (from paper)
-        print(f"\n🏆 PERFORMANCE ACHIEVEMENTS:")
-        print(f"   📈 90.2% improvement over single-agent systems")
-        print(f"   ⚡ 90% time reduction for complex queries")
-        print(f"   🤖 Orchestrator-worker pattern with parallel execution")
-        print(f"   🧠 Advanced memory management and context compression")
+#         # Performance Comparison (from paper)
+#         print(f"\n🏆 PERFORMANCE ACHIEVEMENTS:")
+#         print(f"   📈 90.2% improvement over single-agent systems")
+#         print(f"   ⚡ 90% time reduction for complex queries")
+#         print(f"   🤖 Orchestrator-worker pattern with parallel execution")
+#         print(f"   🧠 Advanced memory management and context compression")
         
-        print("\n" + "=" * 100)
-        print("                         📄 FINAL RESEARCH REPORT")
-        print("=" * 100 + "\n")
+#         print("\n" + "=" * 100)
+#         print("                         📄 FINAL RESEARCH REPORT")
+#         print("=" * 100 + "\n")
         
-        # Enhanced final report printing with error handling
-        final_report = final_result.get("final_report", "")
-        if final_report and final_report.strip():
-            print(final_report)
-        else:
-            print("⚠️ Final report is empty or missing!")
-            print("Debug Information:")
-            print(f"   Report exists: {bool(final_report)}")
-            print(f"   Report length: {len(final_report) if final_report else 0}")
-            print(f"   Report preview: {repr(final_report[:200]) if final_report else 'None'}")
+#         # Enhanced final report printing with error handling
+#         final_report = final_result.get("final_report", "")
+#         if final_report and final_report.strip():
+#             print(final_report)
+#         else:
+#             print("⚠️ Final report is empty or missing!")
+#             print("Debug Information:")
+#             print(f"   Report exists: {bool(final_report)}")
+#             print(f"   Report length: {len(final_report) if final_report else 0}")
+#             print(f"   Report preview: {repr(final_report[:200]) if final_report else 'None'}")
             
-            # Try to print synthesis result directly if available
-            if "synthesis_result" in final_result:
-                print("\n📝 Raw Synthesis Result:")
-                print(final_result["synthesis_result"])
+#             # Try to print synthesis result directly if available
+#             if "synthesis_result" in final_result:
+#                 print("\n📝 Raw Synthesis Result:")
+#                 print(final_result["synthesis_result"])
             
-            # Print any available research findings
-            subagent_results = final_result.get("subagent_results", [])
-            if subagent_results:
-                print("\n🔍 Available Research Findings:")
-                for i, result in enumerate(subagent_results[:3], 1):
-                    findings = result.get('findings', '')
-                    if findings:
-                        print(f"\n{i}. {result.get('task', 'Unknown Task')}:")
-                        print(f"   {findings[:300]}...")
-            else:
-                print("\n❌ No research findings available to display!")
+#             # Print any available research findings
+#             subagent_results = final_result.get("subagent_results", [])
+#             if subagent_results:
+#                 print("\n🔍 Available Research Findings:")
+#                 for i, result in enumerate(subagent_results[:3], 1):
+#                     findings = result.get('findings', '')
+#                     if findings:
+#                         print(f"\n{i}. {result.get('task', 'Unknown Task')}:")
+#                         print(f"   {findings[:300]}...")
+#             else:
+#                 print("\n❌ No research findings available to display!")
         
-        # Subagent Performance Details
-        subagent_results = final_result.get("subagent_results", [])
-        if subagent_results:
-            print("\n" + "=" * 100)
-            print("                      🤖 SUBAGENT PERFORMANCE ANALYSIS")
-            print("=" * 100 + "\n")
+#         # Subagent Performance Details
+#         subagent_results = final_result.get("subagent_results", [])
+#         if subagent_results:
+#             print("\n" + "=" * 100)
+#             print("                      🤖 SUBAGENT PERFORMANCE ANALYSIS")
+#             print("=" * 100 + "\n")
             
-            for result in subagent_results:
-                confidence = result.get('confidence', 0.5)
-                status_icon = "🔥" if confidence >= 0.8 else "📊" if confidence >= 0.6 else "📝"
-                print(f"{status_icon} [{result.get('agent_id', 'Unknown')}] Confidence: {confidence:.2f}")
-                print(f"   Task: {result.get('task', 'N/A')[:60]}...")
+#             for result in subagent_results:
+#                 confidence = result.get('confidence', 0.5)
+#                 status_icon = "🔥" if confidence >= 0.8 else "📊" if confidence >= 0.6 else "📝"
+#                 print(f"{status_icon} [{result.get('agent_id', 'Unknown')}] Confidence: {confidence:.2f}")
+#                 print(f"   Task: {result.get('task', 'N/A')[:60]}...")
         
-        print(f"\n🎉 Research completed successfully!")
+#         print(f"\n🎉 Research completed successfully!")
         
-        # Show export information if applicable
-        if "export_path" in locals():
-            print(f"📁 Report exported to: ai_healthcare_research_report.md")
+#         # Show export information if applicable
+#         if "export_path" in locals():
+#             print(f"📁 Report exported to: ai_healthcare_research_report.md")
         
-        print("=" * 100)
+#         print("=" * 100)
 
-    except Exception as e:
-        logger.exception("❌ Critical system error during execution")
-        print(f"\n❌ SYSTEM ERROR: {e}")
-        print("Please check your API keys and dependencies.")
+#     except Exception as e:
+#         logger.exception("❌ Critical system error during execution")
+#         print(f"\n❌ SYSTEM ERROR: {e}")
+#         print("Please check your API keys and dependencies.")
