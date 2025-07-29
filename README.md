@@ -248,23 +248,7 @@ if results['research_metadata']['exported_to']:
     print(f"📄 Report exported to: {results['research_metadata']['exported_to']}")
 ```
 
-### Command Line Interface
 
-The package provides a convenient CLI tool that works seamlessly with uv:
-
-```bash
-# Using uv run (recommended for project isolation)
-uv run advancedresearch "What are the latest developments in quantum computing?"
-
-# With custom configuration
-uv run advancedresearch "AI ethics in healthcare" --export-path "reports/ai_ethics.md" --max-workers 8 --iterations 5
-
-# High-performance mode
-uv run advancedresearch "Blockchain scalability solutions" --parallel --memory-optimization --model "claude-3-7-sonnet-20250219"
-
-# Or use directly after installation
-advancedresearch "Your research query"
-```
 
 ## 🔧 Advanced Usage
 

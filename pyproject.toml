@@ -48,8 +48,7 @@ Homepage = "https://github.com/The-Swarm-Corporation/AdvancedResearch"
 Documentation = "https://github.com/The-Swarm-Corporation/AdvancedResearch/blob/main/Docs.md"
 Repository = "https://github.com/The-Swarm-Corporation/AdvancedResearch"
 
-[project.scripts]
-advancedresearch = "advanced_research.main:main"
+
 
 [tool.mypy]
 python_version = "3.10"
