@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system,"](https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system) using the `swarms` framework. This system achieves **90.2% performance improvement** over single-agent systems through advanced parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
+An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system,"](https://www.anthropic.com/engineering/built-multi-agent-research-system) using the `swarms` framework. This system achieves **90.2% performance improvement** over single-agent systems through advanced parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
 
 ## ✨ Key Features
 
@@ -532,7 +532,7 @@ If you use this work in your research, please cite both the original paper and t
     author={Anthropic},
     year={2024},
     month={June},
-    url={https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system}
+    url={https://www.anthropic.com/engineering/built-multi-agent-research-system}
 }
 
 @software{advancedresearch2024,
@@ -553,7 +553,7 @@ If you use this work in your research, please cite both the original paper and t
 
 ## 🔗 Related Work
 
-- [Original Paper](https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
+- [Original Paper](https://www.anthropic.com/engineering/built-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
 - [Swarms Framework](https://github.com/kyegomez/swarms) - The underlying multi-agent AI orchestration framework
 - [Full Documentation](https://github.com/The-Swarm-Corporation/AdvancedResearch/blob/main/Docs.md) - Comprehensive API reference and advanced usage guide
 
