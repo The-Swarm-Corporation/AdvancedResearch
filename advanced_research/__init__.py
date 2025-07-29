@@ -20,24 +20,20 @@ Key Features:
 from .main import (
     # Main orchestrator class
     AdvancedResearch,
-    
+    # Dataclasses for system coordination
+    AgentMemory,
+    CitationAgent,
+    CitationOutput,
     # Core agent classes
     LeadResearcherAgent,
-    ResearchSubagent, 
-    CitationAgent,
-    
+    OrchestrationMetrics,
+    ResearchStrategy,
+    ResearchSubagent,
     # Pydantic data models
     SourceInfo,
     SubagentFindings,
-    ResearchStrategy,
-    SynthesisResult,
-    CitationOutput,
-    
-    # Dataclasses for system coordination
-    AgentMemory,
     SubagentResult,
-    OrchestrationMetrics,
-    
+    SynthesisResult,
     # Utility functions
     exa_search,
 )
@@ -52,28 +48,23 @@ __description__ = "A multi-agent AI framework for collaborative scientific resea
 __all__ = [
     # Primary class (most important)
     "AdvancedResearch",
-    
     # Core agent classes
     "LeadResearcherAgent",
     "ResearchSubagent",
     "CitationAgent",
-    
     # Data models for advanced usage
     "SourceInfo",
-    "SubagentFindings", 
+    "SubagentFindings",
     "ResearchStrategy",
     "SynthesisResult",
     "CitationOutput",
     "AgentMemory",
     "SubagentResult",
     "OrchestrationMetrics",
-    
     # Utility functions
     "exa_search",
-    
     # Package metadata
     "__version__",
     "__author__",
     "__description__",
 ]
-
