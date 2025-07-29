@@ -1813,118 +1813,151 @@ If this error persists, please contact the system administrator with the error d
             raise
 
 # # --- Main Execution ---
-# if __name__ == "__main__":
+# def main():
+#     """
+#     CLI entry point for the AdvancedResearch package.
+#     Provides command-line interface for research queries.
+#     """
+#     import argparse
+#     import sys
+    
+#     parser = argparse.ArgumentParser(
+#         description="AdvancedResearch: Enhanced Multi-Agent Research System",
+#         epilog="Example: advancedresearch 'What are the benefits of AI in healthcare?' --export-path report.md"
+#     )
+    
+#     parser.add_argument(
+#         "query",
+#         help="Research question to investigate"
+#     )
+    
+#     parser.add_argument(
+#         "--export-path", 
+#         type=str,
+#         help="Custom file path for exporting the research report"
+#     )
+    
+#     parser.add_argument(
+#         "--no-export",
+#         action="store_true",
+#         help="Disable automatic report export"
+#     )
+    
+#     parser.add_argument(
+#         "--model",
+#         type=str,
+#         default="claude-3-7-sonnet-20250219",
+#         help="LLM model to use (default: claude-3-7-sonnet-20250219)"
+#     )
+    
+#     parser.add_argument(
+#         "--max-workers",
+#         type=int,
+#         default=5,
+#         help="Maximum number of concurrent subagents (default: 5)"
+#     )
+    
+#     parser.add_argument(
+#         "--iterations",
+#         type=int,
+#         default=3,
+#         help="Maximum number of research iterations (default: 3)"
+#     )
+    
+#     parser.add_argument(
+#         "--no-parallel",
+#         action="store_true",
+#         help="Disable parallel execution (useful for debugging)"
+#     )
+    
+#     parser.add_argument(
+#         "--no-memory-optimization",
+#         action="store_true",
+#         help="Disable memory optimization features"
+#     )
+    
+#     parser.add_argument(
+#         "--verbose",
+#         action="store_true",
+#         help="Enable verbose output"
+#     )
+    
+#     args = parser.parse_args()
+    
+#     # Configure logging based on verbosity
+#     if args.verbose:
+#         logger.remove()
+#         logger.add(sys.stdout, level="DEBUG")
+    
 #     try:
-#         # Initialize Advanced Research System with paper specifications
+#         # Initialize the research system with CLI arguments
 #         research_system = AdvancedResearch(
-#             model_name="claude-3-7-sonnet-20250219",
-#             max_iterations=3,
-#             max_workers=5,
-#             enable_parallel_execution=True,
-#             memory_optimization=True
+#             model_name=args.model,
+#             max_iterations=args.iterations,
+#             max_workers=args.max_workers,
+#             enable_parallel_execution=not args.no_parallel,
+#             memory_optimization=not args.no_memory_optimization
 #         )
-
-#         # Example research query demonstrating system capabilities
-#         user_query = "What are the benefits and risks of using AI in healthcare, and what are the primary ethical considerations?"
         
-#         logger.info("🚀 Starting Advanced Research System demonstration")
+#         print("🚀 AdvancedResearch System - Enhanced Multi-Agent Research")
+#         print("=" * 60)
+#         print(f"📝 Query: {args.query}")
+#         print(f"🤖 Model: {args.model}")
+#         print(f"⚡ Workers: {args.max_workers} ({'parallel' if not args.no_parallel else 'sequential'})")
+#         print(f"🔄 Max Iterations: {args.iterations}")
+#         print("=" * 60)
         
-#         # Example usage with export functionality:
-#         # final_result = research_system.research(user_query, export=True, export_path="custom_report.md")
-#         # Or with auto-generated filename:
-#         # final_result = research_system.research(user_query, export=True)
+#         # Execute research
+#         results = research_system.research(
+#             args.query,
+#             export=not args.no_export,
+#             export_path=args.export_path
+#         )
         
-#         final_result = research_system.research(user_query, export=True, export_path="ai_healthcare_research_report.md")
-
-#         # Display comprehensive results
-#         print("\n" + "=" * 100)
-#         print("                    🎯 ADVANCED RESEARCH SYSTEM RESULTS")
-#         print("=" * 100 + "\n")
+#         # Display results
+#         print("\n" + "="*60)
+#         print("                  📊 RESEARCH COMPLETED")
+#         print("="*60)
         
-#         # Research Strategy Analysis
-#         strategy = final_result.get("research_strategy", {})
-#         print("🧠 RESEARCH STRATEGY ANALYSIS:")
-#         print(f"   Strategy Type: {strategy.get('strategy_type', 'N/A')}")
-#         print(f"   Query Complexity: {strategy.get('complexity_score', 'N/A')}/10")
-#         print(f"   Tasks Executed: {strategy.get('tasks_executed', 'N/A')}")
+#         # Performance metrics
+#         metrics = results.get("execution_metrics", {})
+#         strategy = results.get("research_strategy", {})
+#         sources = results.get("source_analysis", {})
         
-#         # Execution Performance Metrics
-#         metrics = final_result.get("execution_metrics", {})
-#         print(f"\n⚡ EXECUTION PERFORMANCE:")
-#         print(f"   Total Time: {metrics.get('total_time', 0):.2f}s")
-#         print(f"   Agents Spawned: {metrics.get('agents_spawned', 0)}")
-#         print(f"   Parallel Efficiency: {metrics.get('parallel_efficiency', 0):.1%}")
-#         print(f"   Synthesis Quality: {metrics.get('synthesis_quality', 0):.2f}")
-#         print(f"   Citation Accuracy: {metrics.get('citation_accuracy', 0):.2f}")
+#         print(f"⏱️  Total Time: {metrics.get('total_time', 0):.2f}s")
+#         print(f"🎯 Strategy: {strategy.get('strategy_type', 'N/A')}")
+#         print(f"🤖 Agents: {metrics.get('agents_spawned', 0)}")
+#         print(f"📊 Quality: {metrics.get('synthesis_quality', 0):.2f}")
+#         print(f"📚 Sources: {sources.get('total_sources', 0)}")
         
-#         # Source Quality Analysis
-#         sources = final_result.get("source_analysis", {})
-#         print(f"\n📊 SOURCE QUALITY ANALYSIS:")
-#         print(f"   Total Sources: {sources.get('total_sources', 0)}")
-#         print(f"   Average Quality: {sources.get('average_quality', 0):.2f}")
-#         print(f"   Citations Added: {sources.get('citation_count', 0)}")
+#         # Export information
+#         exported_to = results.get("research_metadata", {}).get("exported_to")
+#         if exported_to:
+#             print(f"📄 Exported: {exported_to}")
         
-#         # Performance Comparison (from paper)
-#         print(f"\n🏆 PERFORMANCE ACHIEVEMENTS:")
-#         print(f"   📈 90.2% improvement over single-agent systems")
-#         print(f"   ⚡ 90% time reduction for complex queries")
-#         print(f"   🤖 Orchestrator-worker pattern with parallel execution")
-#         print(f"   🧠 Advanced memory management and context compression")
+#         print("\n" + "="*60)
+#         print("                   📄 RESEARCH REPORT")
+#         print("="*60)
         
-#         print("\n" + "=" * 100)
-#         print("                         📄 FINAL RESEARCH REPORT")
-#         print("=" * 100 + "\n")
-        
-#         # Enhanced final report printing with error handling
-#         final_report = final_result.get("final_report", "")
-#         if final_report and final_report.strip():
+#         # Display the final report
+#         final_report = results.get("final_report", "")
+#         if final_report:
 #             print(final_report)
 #         else:
-#             print("⚠️ Final report is empty or missing!")
-#             print("Debug Information:")
-#             print(f"   Report exists: {bool(final_report)}")
-#             print(f"   Report length: {len(final_report) if final_report else 0}")
-#             print(f"   Report preview: {repr(final_report[:200]) if final_report else 'None'}")
-            
-#             # Try to print synthesis result directly if available
-#             if "synthesis_result" in final_result:
-#                 print("\n📝 Raw Synthesis Result:")
-#                 print(final_result["synthesis_result"])
-            
-#             # Print any available research findings
-#             subagent_results = final_result.get("subagent_results", [])
-#             if subagent_results:
-#                 print("\n🔍 Available Research Findings:")
-#                 for i, result in enumerate(subagent_results[:3], 1):
-#                     findings = result.get('findings', '')
-#                     if findings:
-#                         print(f"\n{i}. {result.get('task', 'Unknown Task')}:")
-#                         print(f"   {findings[:300]}...")
-#             else:
-#                 print("\n❌ No research findings available to display!")
+#             print("⚠️  No report was generated. Check the logs for errors.")
+#             return 1
         
-#         # Subagent Performance Details
-#         subagent_results = final_result.get("subagent_results", [])
-#         if subagent_results:
-#             print("\n" + "=" * 100)
-#             print("                      🤖 SUBAGENT PERFORMANCE ANALYSIS")
-#             print("=" * 100 + "\n")
-            
-#             for result in subagent_results:
-#                 confidence = result.get('confidence', 0.5)
-#                 status_icon = "🔥" if confidence >= 0.8 else "📊" if confidence >= 0.6 else "📝"
-#                 print(f"{status_icon} [{result.get('agent_id', 'Unknown')}] Confidence: {confidence:.2f}")
-#                 print(f"   Task: {result.get('task', 'N/A')[:60]}...")
+#         print("\n✅ Research completed successfully!")
+#         return 0
         
-#         print(f"\n🎉 Research completed successfully!")
-        
-#         # Show export information if applicable
-#         if "export_path" in locals():
-#             print(f"📁 Report exported to: ai_healthcare_research_report.md")
-        
-#         print("=" * 100)
-
+#     except KeyboardInterrupt:
+#         print("\n⏹️  Research interrupted by user.")
+#         return 130
 #     except Exception as e:
-#         logger.exception("❌ Critical system error during execution")
-#         print(f"\n❌ SYSTEM ERROR: {e}")
+#         logger.exception("❌ Critical error during CLI execution")
+#         print(f"\n❌ ERROR: {e}")
 #         print("Please check your API keys and dependencies.")
+#         return 1
+
+# if __name__ == "__main__":
+#     sys.exit(main())
