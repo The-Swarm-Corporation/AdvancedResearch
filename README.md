@@ -504,16 +504,6 @@ If you use this work in your research, please cite both the original paper and t
 - **Email**: kye@apac.ai
 - **Discord**: [Join our community](https://discord.gg/swarms-999382051935506503)
 
-## 🎯 Performance Benchmarks
-
-| Metric | Single Agent | Advanced Research System | Improvement |
-|--------|-------------|-------------------------|-------------|
-| **Complex Query Time** | 300-600s | 60-120s | **⚡ 80-90% faster** |
-| **Source Quality** | 0.4-0.6 | 0.7-0.9 | **📊 40-50% better** |
-| **Research Completeness** | 60-70% | 85-95% | **🎯 25-35% more complete** |
-| **Citation Accuracy** | Manual process | Automated 90%+ | **📚 Fully automated** |
-| **Parallel Efficiency** | N/A | 85-95% | **⚡ Near-linear scaling** |
-
 ## 📈 Roadmap
 
 - [ ] **Enhanced Tool Integration**: Google Scholar, PubMed, ArXiv specialized search
