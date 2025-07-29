@@ -1,4 +1,4 @@
-![Anthropic Multi-Agent Architecture](https://storage.googleapis.com/gweb-research2023-media/images/Group_88.width-1250.png)
+![Anthropic Multi-Agent Architecture](https://www.anthropic.com/_next/image?url=https%3A%2F%2Fwww-cdn.anthropic.com%2Fimages%2F4zrzovbb%2Fwebsite%2F1198befc0b33726c45692ac40f764022f4de1bf2-4584x2579.png&w=3840&q=75)
 
 # Advanced Research System (Based on Anthropic's Paper)
 
