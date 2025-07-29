@@ -2,7 +2,7 @@
 
 # Advanced Research System (Based on Anthropic's Paper)
 
-[![Join our Discord](https://img.shields.io/badge/Discord-Join%20our%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/swarms-999382051935506503) [![Subscribe on YouTube](https://img.shields.io/badge/YouTube-Subscribe-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@kyegomez3242) [![Connect on LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kye-g-38759a207/) [![Follow on X.com](https://img.shields.io/badge/X.com-Follow-1DA1F2?style=for-the-badge&logo=x&logoColor=white)](https://x.com/kyegomezb)
+[![Join our Discord](https://img.shields.io/badge/Discord-Join%20our%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/EamjgSaEQf) [![Subscribe on YouTube](https://img.shields.io/badge/YouTube-Subscribe-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@kyegomez3242) [![Connect on LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kye-g-38759a207/) [![Follow on X.com](https://img.shields.io/badge/X.com-Follow-1DA1F2?style=for-the-badge&logo=x&logoColor=white)](https://x.com/kyegomezb)
 
 [![PyPI version](https://badge.fury.io/py/advancedresearch.svg)](https://badge.fury.io/py/advancedresearch)
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
@@ -12,21 +12,16 @@ An enhanced implementation of the orchestrator-worker pattern from Anthropic's p
 
 ## ✨ Key Features
 
-🧠 **Enhanced Orchestrator-Worker Architecture**: A `LeadResearcherAgent` with explicit thinking processes plans and synthesizes, while specialized `ResearchSubagent` workers execute focused tasks with iterative search capabilities.
-
-🌐 **Advanced Web Search Integration**: Utilizes `exa_search` with quality scoring, source reliability assessment, and multi-loop search strategies for comprehensive research.
-
-⚖️ **LLM-as-Judge Evaluation**: Sophisticated progress evaluation system that determines research completeness, identifies missing topics, and guides iterative refinement.
-
-⚡ **High-Performance Parallel Execution**: Leverages `ThreadPoolExecutor` to run up to 5 specialized agents concurrently, achieving **90% time reduction** for complex queries.
-
-📚 **Professional Citation System**: Enhanced `CitationAgent` with intelligent source descriptions, quality-based formatting, and academic-style citations.
-
-📄 **Export Functionality**: Built-in report export to Markdown files with customizable paths, automatic timestamping, and comprehensive metadata.
-
-🛡️ **Multi-Layer Error Recovery**: Advanced error handling with fallback content generation, emergency report creation, and adaptive task refinement.
-
-💾 **Enhanced State Management**: Comprehensive orchestration metrics, conversation history tracking, and persistent agent states.
+| Icon | Feature | Description |
+|------|---------|-------------|
+| 🧠 | **Enhanced Orchestrator-Worker Architecture** | A `LeadResearcherAgent` with explicit thinking processes plans and synthesizes, while specialized `ResearchSubagent` workers execute focused tasks with iterative search capabilities. |
+| 🌐 | **Advanced Web Search Integration** | Utilizes `exa_search` with quality scoring, source reliability assessment, and multi-loop search strategies for comprehensive research. |
+| ⚖️ | **LLM-as-Judge Evaluation** | Sophisticated progress evaluation system that determines research completeness, identifies missing topics, and guides iterative refinement. |
+| ⚡ | **High-Performance Parallel Execution** | Leverages `ThreadPoolExecutor` to run up to 5 specialized agents concurrently, achieving **90% time reduction** for complex queries. |
+| 📚 | **Professional Citation System** | Enhanced `CitationAgent` with intelligent source descriptions, quality-based formatting, and academic-style citations. |
+| 📄 | **Export Functionality** | Built-in report export to Markdown files with customizable paths, automatic timestamping, and comprehensive metadata. |
+| 🛡️ | **Multi-Layer Error Recovery** | Advanced error handling with fallback content generation, emergency report creation, and adaptive task refinement. |
+| 💾 | **Enhanced State Management** | Comprehensive orchestration metrics, conversation history tracking, and persistent agent states. |
 
 ## 🏗️ Architecture
 
@@ -562,7 +557,7 @@ If you use this work in your research, please cite both the original paper and t
 - **Issues**: [GitHub Issues](https://github.com/The-Swarm-Corporation/AdvancedResearch/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/The-Swarm-Corporation/AdvancedResearch/discussions)
 - **Email**: kye@apac.ai
-- **Discord**: [Join our community](https://discord.gg/swarms-999382051935506503)
+- **Discord**: [Join our community](https://discord.gg/EamjgSaEQf)
 
 ## 🎯 Performance Benchmarks
 
