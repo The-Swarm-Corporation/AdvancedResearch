@@ -347,14 +347,6 @@ for result in results["subagent_results"]:
     print(f"  Iteration: {result.get('iteration', 'N/A')}")
 ```
 
-## 📊 Performance Achievements
-
-- **📈 90.2% improvement** over single-agent systems
-- **⚡ 90% time reduction** for complex queries through parallel execution
-- **🎯 Advanced targeting** with LLM-as-judge evaluation
-- **🔄 Iterative refinement** with gap identification and adaptive strategies
-- **📚 Professional citations** with quality assessment and intelligent descriptions
-
 ## 🛠️ Real-World Examples
 
 ### Healthcare AI Research
@@ -409,58 +401,6 @@ for topic in topics:
     print(f"Sources: {result['source_analysis']['total_sources']}")
 ```
 
-## 🛡️ Enterprise Usage
-
-### Batch Processing and Automation
-
-```python
-from advancedresearch import AdvancedResearch
-import asyncio
-from datetime import datetime
-
-class ResearchPipeline:
-    def __init__(self):
-        self.research_system = AdvancedResearch(
-            max_iterations=3,
-            max_workers=8,
-            enable_parallel_execution=True,
-            memory_optimization=True
-        )
-    
-    def batch_research(self, queries: list, output_dir: str = "research_reports"):
-        """Process multiple research queries in batch."""
-        results = []
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        
-        for i, query in enumerate(queries, 1):
-            print(f"Processing query {i}/{len(queries)}: {query[:50]}...")
-            
-            result = self.research_system.research(
-                query,
-                export=True,
-                export_path=f"{output_dir}/report_{timestamp}_{i:03d}.md"
-            )
-            
-            results.append({
-                "query": query,
-                "metrics": result["execution_metrics"],
-                "exported_to": result["research_metadata"]["exported_to"]
-            })
-        
-        return results
-
-# Usage
-pipeline = ResearchPipeline()
-research_topics = [
-    "Impact of GDPR on AI development in Europe",
-    "Sustainable AI computing and green data centers",
-    "Federated learning for privacy-preserving AI"
-]
-
-batch_results = pipeline.batch_research(research_topics)
-for result in batch_results:
-    print(f"✅ {result['query'][:40]}... -> {result['exported_to']}")
-```
 
 ## 🤝 Contributing
 
@@ -516,7 +456,7 @@ If you use this work in your research, please cite both the original paper and t
 
 @software{advancedresearch2024,
     title={AdvancedResearch: Enhanced Multi-Agent Research System},
-    author={Kye Gomez and The Swarm Corporation},
+    author={The Swarm Corporation},
     year={2024},
     url={https://github.com/The-Swarm-Corporation/AdvancedResearch},
     note={Implementation based on Anthropic's multi-agent research system paper}
@@ -543,29 +483,6 @@ If you use this work in your research, please cite both the original paper and t
 - **Email**: kye@apac.ai
 - **Discord**: [Join our community](https://discord.gg/EamjgSaEQf)
 
-## 🎯 Performance Benchmarks
-
-| Metric | Single Agent | Advanced Research System | Improvement |
-|--------|-------------|-------------------------|-------------|
-| **Complex Query Time** | 300-600s | 60-120s | **⚡ 80-90% faster** |
-| **Source Quality** | 0.4-0.6 | 0.7-0.9 | **📊 40-50% better** |
-| **Research Completeness** | 60-70% | 85-95% | **🎯 25-35% more complete** |
-| **Citation Accuracy** | Manual process | Automated 90%+ | **📚 Fully automated** |
-| **Parallel Efficiency** | N/A | 85-95% | **⚡ Near-linear scaling** |
-
-## 📈 Roadmap
-
-- [ ] **Enhanced Tool Integration**: Google Scholar, PubMed, ArXiv specialized search
-- [ ] **Vector Database Memory**: Persistent long-term memory across research sessions  
-- [ ] **Advanced Visualization**: Research flow diagrams and knowledge graphs
-- [ ] **Multi-Language Support**: Research in multiple languages with auto-translation
-- [ ] **Custom Model Fine-tuning**: Domain-specific research specialization
-- [ ] **Real-time Collaboration**: Multi-user research sessions with shared workspaces
-- [ ] **API Service**: RESTful API for enterprise integration
-- [ ] **Web Interface**: Browser-based research dashboard
-
----
-
 <p align="center">
-  <strong>Built with <a href="https://github.com/kyegomez/swarms">Swarms</a> for autonomous, high-performance AI research</strong>
+  <strong>Built with <a href="https://github.com/kyegomez/swarms">Swarms</a> framework for production-grade agentic applications </strong>
 </p>
