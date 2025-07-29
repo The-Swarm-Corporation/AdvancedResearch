@@ -4,6 +4,10 @@
 
 [![Join our Discord](https://img.shields.io/badge/Discord-Join%20our%20server-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/swarms-999382051935506503) [![Subscribe on YouTube](https://img.shields.io/badge/YouTube-Subscribe-red?style=for-the-badge&logo=youtube&logoColor=white)](https://www.youtube.com/@kyegomez3242) [![Connect on LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=for-the-badge&logo=linkedin&logoColor=white)](https://www.linkedin.com/in/kye-g-38759a207/) [![Follow on X.com](https://img.shields.io/badge/X.com-Follow-1DA1F2?style=for-the-badge&logo=x&logoColor=white)](https://x.com/kyegomezb)
 
+[![PyPI version](https://badge.fury.io/py/advancedresearch.svg)](https://badge.fury.io/py/advancedresearch)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system,"](https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system) using the `swarms` framework. This system achieves **90.2% performance improvement** over single-agent systems through advanced parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
 
 ## ✨ Key Features
@@ -93,27 +97,61 @@ The system follows a dynamic, multi-phase workflow with enhanced coordination:
 
 - Python 3.10 or higher
 - API keys for Claude (Anthropic) and Exa search
-- `uv` package manager (recommended) or pip
 
 ### Install with uv (Recommended)
 
-Using `uv` provides faster, more reliable dependency management:
+`uv` provides the fastest and most reliable package management experience:
 
 ```bash
 # Install uv if you haven't already
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install dependencies
-uv add swarms
-uv add python-dotenv requests loguru pydantic
+# Install the package
+uv add advancedresearch
+
+# Or create a new project with advancedresearch
+uv init my-research-project
+cd my-research-project
+uv add advancedresearch
 ```
 
-### Alternative Installation with pip
+### Alternative Installation Methods
 
 ```bash
-pip install -U swarms
-pip install python-dotenv requests loguru pydantic
+# Using pip
+pip install advancedresearch
+
+# Using poetry
+poetry add advancedresearch
 ```
+
+### Development Installation
+
+For development or to access the latest features:
+
+```bash
+# Clone the repository
+git clone https://github.com/The-Swarm-Corporation/AdvancedResearch.git
+cd AdvancedResearch
+
+# Install with uv (recommended)
+uv sync
+
+# Or with poetry
+poetry install
+
+# Or with pip
+pip install -e .
+```
+
+### Why uv?
+
+We recommend `uv` for the best experience with AdvancedResearch:
+
+- **⚡ 10-100x faster** than pip for dependency resolution and installation
+- **🔒 Reliable**: Deterministic builds with automatic virtual environment management
+- **🎯 Simple**: Single tool for project management, dependency resolution, and Python version management
+- **🔄 Compatible**: Drop-in replacement for pip with better performance
 
 ### Environment Setup
 
@@ -132,10 +170,46 @@ OPENAI_API_KEY="your_openai_api_key_here"
 
 ## 🚀 Quick Start
 
-Save the implementation as `advanced_research.py` and run:
+### Complete uv Workflow
+
+Get started with AdvancedResearch using uv for the optimal experience:
+
+```bash
+# Install uv (if not already installed)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+
+# Create a new project
+uv init my-research-project
+cd my-research-project
+
+# Add advancedresearch
+uv add advancedresearch
+
+# Create your research script
+cat > research.py << 'EOF'
+from advancedresearch import AdvancedResearch
+
+# Initialize the system
+research_system = AdvancedResearch()
+
+# Run research
+results = research_system.research(
+    "What are the latest developments in quantum computing?",
+    export=True,
+    export_path="quantum_computing_report.md"
+)
+
+print(f"Research completed! Report: {results['research_metadata']['exported_to']}")
+EOF
+
+# Run your research
+uv run research.py
+```
+
+### Python API Usage
 
 ```python
-from advanced_research import AdvancedResearch
+from advancedresearch import AdvancedResearch
 
 # Initialize the advanced research system
 research_system = AdvancedResearch(
@@ -179,6 +253,24 @@ if results['research_metadata']['exported_to']:
     print(f"📄 Report exported to: {results['research_metadata']['exported_to']}")
 ```
 
+### Command Line Interface
+
+The package provides a convenient CLI tool that works seamlessly with uv:
+
+```bash
+# Using uv run (recommended for project isolation)
+uv run advancedresearch "What are the latest developments in quantum computing?"
+
+# With custom configuration
+uv run advancedresearch "AI ethics in healthcare" --export-path "reports/ai_ethics.md" --max-workers 8 --iterations 5
+
+# High-performance mode
+uv run advancedresearch "Blockchain scalability solutions" --parallel --memory-optimization --model "claude-3-7-sonnet-20250219"
+
+# Or use directly after installation
+advancedresearch "Your research query"
+```
+
 ## 🔧 Advanced Usage
 
 ### Custom Configuration
@@ -186,6 +278,8 @@ if results['research_metadata']['exported_to']:
 Easily customize research depth and execution strategy:
 
 ```python
+from advancedresearch import AdvancedResearch
+
 # Quick overview research
 quick_system = AdvancedResearch(
     max_iterations=1,
@@ -287,7 +381,7 @@ for result in results["subagent_results"]:
 ### Healthcare AI Research
 
 ```python
-from advanced_research import AdvancedResearch
+from advancedresearch import AdvancedResearch
 
 research_system = AdvancedResearch(
     model_name="claude-3-7-sonnet-20250219",
@@ -336,23 +430,101 @@ for topic in topics:
     print(f"Sources: {result['source_analysis']['total_sources']}")
 ```
 
+## 🛡️ Enterprise Usage
+
+### Batch Processing and Automation
+
+```python
+from advancedresearch import AdvancedResearch
+import asyncio
+from datetime import datetime
+
+class ResearchPipeline:
+    def __init__(self):
+        self.research_system = AdvancedResearch(
+            max_iterations=3,
+            max_workers=8,
+            enable_parallel_execution=True,
+            memory_optimization=True
+        )
+    
+    def batch_research(self, queries: list, output_dir: str = "research_reports"):
+        """Process multiple research queries in batch."""
+        results = []
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        
+        for i, query in enumerate(queries, 1):
+            print(f"Processing query {i}/{len(queries)}: {query[:50]}...")
+            
+            result = self.research_system.research(
+                query,
+                export=True,
+                export_path=f"{output_dir}/report_{timestamp}_{i:03d}.md"
+            )
+            
+            results.append({
+                "query": query,
+                "metrics": result["execution_metrics"],
+                "exported_to": result["research_metadata"]["exported_to"]
+            })
+        
+        return results
+
+# Usage
+pipeline = ResearchPipeline()
+research_topics = [
+    "Impact of GDPR on AI development in Europe",
+    "Sustainable AI computing and green data centers",
+    "Federated learning for privacy-preserving AI"
+]
+
+batch_results = pipeline.batch_research(research_topics)
+for result in batch_results:
+    print(f"✅ {result['query'][:40]}... -> {result['exported_to']}")
+```
+
 ## 🤝 Contributing
 
-This implementation is part of the open-source `swarms` framework. We welcome contributions!
+This implementation is part of the open-source `swarms` ecosystem. We welcome contributions!
 
-1. Fork the [swarms repository](https://github.com/kyegomez/swarms)
+1. Fork the [repository](https://github.com/The-Swarm-Corporation/AdvancedResearch)
 2. Create a feature branch (`git checkout -b feature/amazing-research-feature`)
 3. Commit your changes (`git commit -m 'Add amazing feature'`)
 4. Push to the branch (`git push origin feature/amazing-research-feature`)
 5. Open a Pull Request
 
+### Development Setup with uv
+
+```bash
+# Clone and setup development environment
+git clone https://github.com/The-Swarm-Corporation/AdvancedResearch.git
+cd AdvancedResearch
+
+# Install development dependencies with uv (recommended)
+uv sync --dev
+
+# Run tests
+uv run pytest
+
+# Run linting
+uv run ruff check .
+uv run black --check .
+
+# Run type checking
+uv run mypy advanced_research/
+
+# Format code
+uv run black .
+uv run ruff check --fix .
+```
+
 ## 📄 License
 
-This project is licensed under the MIT License. See the [LICENSE](https://github.com/kyegomez/swarms/blob/master/LICENSE) file for details.
+This project is licensed under the MIT License. See the [LICENSE](https://github.com/The-Swarm-Corporation/AdvancedResearch/blob/main/LICENSE) file for details.
 
 ## 📚 Citation
 
-If you use this work in your research, please cite both the original paper and the `swarms` implementation:
+If you use this work in your research, please cite both the original paper and this implementation:
 
 ```bibtex
 @misc{anthropic2024researchsystem,
@@ -363,17 +535,19 @@ If you use this work in your research, please cite both the original paper and t
     url={https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system}
 }
 
+@software{advancedresearch2024,
+    title={AdvancedResearch: Enhanced Multi-Agent Research System},
+    author={Kye Gomez and The Swarm Corporation},
+    year={2024},
+    url={https://github.com/The-Swarm-Corporation/AdvancedResearch},
+    note={Implementation based on Anthropic's multi-agent research system paper}
+}
+
 @software{swarms_framework,
     title={Swarms: An Open-Source Multi-Agent Framework},
     author={Kye Gomez},
     year={2023},
     url={https://github.com/kyegomez/swarms}
-}
-
-@software{advanced_research_implementation,
-    title={Advanced Research System: Enhanced Multi-Agent Research Implementation},
-    year={2024},
-    note={Implementation based on Anthropic's multi-agent research system paper}
 }
 ```
 
@@ -381,12 +555,13 @@ If you use this work in your research, please cite both the original paper and t
 
 - [Original Paper](https://www.anthropic.com/news/how-we-built-our-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
 - [Swarms Framework](https://github.com/kyegomez/swarms) - The underlying multi-agent AI orchestration framework
-- [Full Documentation](Docs.md) - Comprehensive API reference and advanced usage guide
+- [Full Documentation](https://github.com/The-Swarm-Corporation/AdvancedResearch/blob/main/Docs.md) - Comprehensive API reference and advanced usage guide
 
 ## 📞 Support
 
-- **Issues**: [Swarms GitHub Issues](https://github.com/kyegomez/swarms/issues)
-- **Email**: kye@swarms.world
+- **Issues**: [GitHub Issues](https://github.com/The-Swarm-Corporation/AdvancedResearch/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/The-Swarm-Corporation/AdvancedResearch/discussions)
+- **Email**: kye@apac.ai
 - **Discord**: [Join our community](https://discord.gg/swarms-999382051935506503)
 
 ## 🎯 Performance Benchmarks
@@ -407,6 +582,8 @@ If you use this work in your research, please cite both the original paper and t
 - [ ] **Multi-Language Support**: Research in multiple languages with auto-translation
 - [ ] **Custom Model Fine-tuning**: Domain-specific research specialization
 - [ ] **Real-time Collaboration**: Multi-user research sessions with shared workspaces
+- [ ] **API Service**: RESTful API for enterprise integration
+- [ ] **Web Interface**: Browser-based research dashboard
 
 ---
 
