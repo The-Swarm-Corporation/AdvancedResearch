@@ -1,19 +1,3 @@
-"""
-AdvancedResearch: Multi-agent research system implementing the orchestrator-worker pattern.
-
-This implementation follows the paper "How we built our multi-agent research system"
-achieving 90.2% performance improvement over single agents through:
-- Dynamic subagent spawning with parallel tool execution
-- Orchestrator-worker pattern with specialized agents
-- Advanced memory management and context compression
-- Real-time coordination and error recovery
-
-Architecture:
-LeadResearcher (Orchestrator) → Planning, Strategy, Coordination
-Specialized Subagents (Workers) → Independent Search, Parallel Tool Usage
-CitationAgent (Post-processor) → Citation Verification, Quality Assurance
-"""
-
 import json
 import os
 import re
