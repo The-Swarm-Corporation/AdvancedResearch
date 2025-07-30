@@ -787,24 +787,45 @@ class ResearchSubagent:
         agent_id: str,
         model_name: str = "claude-3-7-sonnet-20250219",
         strategy_context: str = "breadth_first",
+        max_loops: int = 3,
+        max_search_results: int = 5,
     ):
         self.agent_id = agent_id
         self.model_name = model_name
         self.strategy_context = strategy_context
+        self.max_loops = max_loops
+        self.max_search_results = max_search_results
+
+        # Create a custom exa_search function with configured max results
+        def configured_exa_search(query: str, **kwargs: Any) -> str:
+            """
+            Advanced web search using Exa.ai API with pre-configured result limits.
+
+            Args:
+                query (str): The search query for web research
+                **kwargs: Additional search parameters
+
+            Returns:
+                str: Formatted search results with quality indicators
+            """
+            return exa_search(query, num_results=self.max_search_results, **kwargs)
 
         # Initialize specialized subagent with iterative search capabilities
         self.worker_agent = Agent(
             agent_name=f"Research-Subagent-{agent_id}",
             system_prompt=self._get_subagent_prompt(),
             model_name=model_name,
-            max_loops=3,  # Enable iterative search-analyze-refine loop
-            tools=[exa_search],  # Primary tool for web research
+            max_loops=max_loops,  # Use the configurable parameter
+            tools=[
+                configured_exa_search
+            ],  # Primary tool for web research with configured results
             verbose=False,
             retry_attempts=1,
         )
 
         logger.info(
-            f"ResearchSubagent {agent_id} initialized with {strategy_context} strategy"
+            f"ResearchSubagent {agent_id} initialized with {strategy_context} strategy, "
+            f"max_loops={max_loops}, max_search_results={max_search_results}"
         )
 
     def _get_subagent_prompt(self) -> str:
@@ -861,7 +882,7 @@ ADVANCED SEARCH METHODOLOGY:
    - Depth of Analysis: Detailed explanations vs surface-level coverage
 
 ITERATIVE EXECUTION PROTOCOL:
-You have up to 3 tool calls to thoroughly research your assigned task. Use them strategically:
+You have up to {self.max_loops} tool calls to thoroughly research your assigned task. Use them strategically:
 
 PHASE 1 - INITIAL EXPLORATION:
 1. Analyze your assigned task to identify 2-3 key research angles
@@ -1551,10 +1572,21 @@ class AdvancedResearch:
     Advanced Research System - Main orchestrator implementing the paper's architecture.
 
     Achieves 90.2% performance improvement through:
-    - Dynamic subagent spawning (3-5 specialized workers)
+    - Dynamic subagent spawning (configurable 1-10 specialized workers)
     - Parallel tool execution across multiple agents
     - Advanced memory management and context compression
     - Orchestrator-worker pattern with error recovery
+    - Configurable iteration controls for fine-tuned performance
+
+    Parameters:
+        model_name (str): AI model to use for agents (default: "claude-3-7-sonnet-20250219")
+        max_iterations (int): Maximum main research loop iterations (default: 3)
+        max_workers (int): Maximum number of parallel subagents (default: 5)
+        max_subagent_iterations (int): Maximum search iterations per subagent (default: 3)
+        max_search_results (int): Maximum results per search query (default: 5)
+        base_path (str): Workspace directory path (default: "agent_workspace")
+        enable_parallel_execution (bool): Enable parallel processing (default: True)
+        memory_optimization (bool): Enable memory optimization (default: True)
     """
 
     def __init__(
@@ -1562,6 +1594,8 @@ class AdvancedResearch:
         model_name: str = "claude-3-7-sonnet-20250219",
         max_iterations: int = 3,
         max_workers: int = 5,
+        max_subagent_iterations: int = 3,
+        max_search_results: int = 5,
         base_path: str = "agent_workspace",
         enable_parallel_execution: bool = True,
         memory_optimization: bool = True,
@@ -1570,6 +1604,8 @@ class AdvancedResearch:
         self.model_name = model_name
         self.max_iterations = max_iterations
         self.max_workers = max_workers
+        self.max_subagent_iterations = max_subagent_iterations
+        self.max_search_results = max_search_results
         self.base_path = Path(base_path)
         self.base_path.mkdir(exist_ok=True)
         self.enable_parallel_execution = enable_parallel_execution
@@ -1587,7 +1623,9 @@ class AdvancedResearch:
             "AdvancedResearch System initialized with orchestrator-worker architecture"
         )
         logger.info(
-            f"Configuration: {max_workers} workers, {max_iterations} iterations, parallel={enable_parallel_execution}"
+            f"Configuration: {max_workers} workers, {max_iterations} iterations, "
+            f"subagent_iterations={max_subagent_iterations}, search_results={max_search_results}, "
+            f"parallel={enable_parallel_execution}"
         )
 
     def research(
@@ -1597,10 +1635,16 @@ class AdvancedResearch:
         Main research execution implementing the paper's core workflow:
         1. Query Analysis → Lead agent develops strategy
         2. Task Decomposition → Break into parallel subtasks
-        3. Subagent Spawning → Create 3-5 specialized agents
-        4. Parallel Execution → Agents search simultaneously
+        3. Subagent Spawning → Create specialized agents (configurable count)
+        4. Parallel Execution → Agents search simultaneously with configurable iterations
         5. Result Synthesis → Lead agent compiles findings
         6. Citation Processing → CitationAgent adds attribution
+
+        The system uses configurable parameters set during initialization:
+        - max_iterations: Controls main research loop iterations
+        - max_workers: Number of parallel subagents spawned
+        - max_subagent_iterations: Search iterations per subagent
+        - max_search_results: Results returned per search query
 
         Args:
             query (str): The research question to investigate
@@ -1895,7 +1939,13 @@ The Advanced Research System completed execution but encountered issues in repor
 
             for i, task in enumerate(tasks):
                 agent_id = f"SA-{iteration}-{i+1}"
-                subagent = ResearchSubagent(agent_id, self.model_name, strategy_type)
+                subagent = ResearchSubagent(
+                    agent_id,
+                    self.model_name,
+                    strategy_type,
+                    max_loops=self.max_subagent_iterations,
+                    max_search_results=self.max_search_results,
+                )
                 priority = max(1, 4 - i)  # Higher priority for earlier tasks
 
                 future = executor.submit(subagent.execute_task, task, priority)
@@ -1945,7 +1995,13 @@ The Advanced Research System completed execution but encountered issues in repor
         results = []
         for i, task in enumerate(tasks):
             agent_id = f"SA-{iteration}-{i+1}"
-            subagent = ResearchSubagent(agent_id, self.model_name, strategy_type)
+            subagent = ResearchSubagent(
+                agent_id,
+                self.model_name,
+                strategy_type,
+                max_loops=self.max_subagent_iterations,
+                max_search_results=self.max_search_results,
+            )
             priority = max(1, 4 - i)
 
             result = subagent.execute_task(task, priority)
