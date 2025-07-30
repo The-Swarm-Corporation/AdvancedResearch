@@ -12,16 +12,16 @@ An enhanced implementation of the orchestrator-worker pattern from Anthropic's p
 
 ## ✨ Key Features
 
-| Icon | Feature | Description |
-|------|---------|-------------|
-| 🧠 | **Enhanced Orchestrator-Worker Architecture** | A `LeadResearcherAgent` with explicit thinking processes plans and synthesizes, while specialized `ResearchSubagent` workers execute focused tasks with iterative search capabilities. |
-| 🌐 | **Advanced Web Search Integration** | Utilizes `exa_search` with quality scoring, source reliability assessment, and multi-loop search strategies for comprehensive research. |
-| ⚖️ | **LLM-as-Judge Evaluation** | Sophisticated progress evaluation system that determines research completeness, identifies missing topics, and guides iterative refinement. |
-| ⚡ | **High-Performance Parallel Execution** | Leverages `ThreadPoolExecutor` to run up to 5 specialized agents concurrently, achieving **90% time reduction** for complex queries. |
-| 📚 | **Professional Citation System** | Enhanced `CitationAgent` with intelligent source descriptions, quality-based formatting, and academic-style citations. |
-| 📄 | **Export Functionality** | Built-in report export to Markdown files with customizable paths, automatic timestamping, and comprehensive metadata. |
-| 🛡️ | **Multi-Layer Error Recovery** | Advanced error handling with fallback content generation, emergency report creation, and adaptive task refinement. |
-| 💾 | **Enhanced State Management** | Comprehensive orchestration metrics, conversation history tracking, and persistent agent states. |
+| Feature | Description |
+|---------|-------------|
+| **Enhanced Orchestrator-Worker Architecture** | A `LeadResearcherAgent` with explicit thinking processes plans and synthesizes, while specialized `ResearchSubagent` workers execute focused tasks with iterative search capabilities. |
+| **Advanced Web Search Integration** | Utilizes `exa_search` with quality scoring, source reliability assessment, and multi-loop search strategies for comprehensive research. |
+| **LLM-as-Judge Evaluation** | Sophisticated progress evaluation system that determines research completeness, identifies missing topics, and guides iterative refinement. |
+| **High-Performance Parallel Execution** | Leverages `ThreadPoolExecutor` to run up to 5 specialized agents concurrently, achieving **90% time reduction** for complex queries. |
+| **Professional Citation System** | Enhanced `CitationAgent` with intelligent source descriptions, quality-based formatting, and academic-style citations. |
+| **Export Functionality** | Built-in report export to Markdown files with customizable paths, automatic timestamping, and comprehensive metadata. |
+| **Multi-Layer Error Recovery** | Advanced error handling with fallback content generation, emergency report creation, and adaptive task refinement. |
+| **Enhanced State Management** | Comprehensive orchestration metrics, conversation history tracking, and persistent agent states. |
 
 ## 🏗️ Architecture
 
@@ -480,7 +480,6 @@ If you use this work in your research, please cite both the original paper and t
 
 - **Issues**: [GitHub Issues](https://github.com/The-Swarm-Corporation/AdvancedResearch/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/The-Swarm-Corporation/AdvancedResearch/discussions)
-- **Email**: kye@swarms.world
 - **Discord**: [Join our community](https://discord.gg/EamjgSaEQf)
 
 <p align="center">
