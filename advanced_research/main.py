@@ -14,7 +14,6 @@ Specialized Subagents (Workers) → Independent Search, Parallel Tool Usage
 CitationAgent (Post-processor) → Citation Verification, Quality Assurance
 """
 
-import asyncio
 import json
 import os
 import re
@@ -36,23 +35,6 @@ from swarms import Agent, Conversation
 
 # Load environment variables from .env file
 load_dotenv()
-
-# --- Enhanced Logging Configuration ---
-logger.remove()
-logger.add(
-    sys.stdout,
-    level="INFO",
-    format="<green>{time:YYYY-MM-DD HH:mm:ss}</green> | <level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
-    colorize=True,
-)
-logger.add(
-    "advanced_research.log",
-    level="DEBUG",
-    format="{time:YYYY-MM-DD HH:mm:ss} | {level: <8} | {name}:{function}:{line} - {message}",
-    rotation="10 MB",
-    retention="7 days",
-    encoding="utf-8",
-)
 
 
 # --- Pydantic Models for Structured Communication ---
@@ -1077,9 +1059,7 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
             logger.error(f"❌ [{self.agent_id}] Task execution failed: {e}")
             return self._create_error_result(task, str(e), execution_time)
 
-    def _parse_subagent_response(
-        self, response: str
-    ) -> tuple[dict | None, str | None]:
+    def _parse_subagent_response(self, response: str) -> tuple[dict | None, str | None]:
         """Parse subagent response with enhanced error handling and fallback mechanisms."""
         if not response or not response.strip():
             logger.warning(f"[{self.agent_id}] Received empty response from agent")
@@ -1383,9 +1363,7 @@ No explanations outside the JSON structure."""
             logger.error(f"Citation processing error: {e}")
             return self._create_basic_citations(report, source_collection)
 
-    def _parse_citation_response(
-        self, response: str
-    ) -> tuple[dict | None, str | None]:
+    def _parse_citation_response(self, response: str) -> tuple[dict | None, str | None]:
         """Parse citation agent response with error handling."""
         if not response or not response.strip():
             return None, "Empty citation response"
@@ -1454,7 +1432,9 @@ No explanations outside the JSON structure."""
                 else:
                     # Infer content type from URL for better descriptions
                     if "ncbi.nlm.nih.gov" in url:
-                        cited_report += "    Summary: Medical research article from NCBI database\n"
+                        cited_report += (
+                            "    Summary: Medical research article from NCBI database\n"
+                        )
                     elif "fda.gov" in url:
                         cited_report += (
                             "    Summary: FDA regulatory guidance and documentation\n"
@@ -1472,7 +1452,9 @@ No explanations outside the JSON structure."""
                             "    Summary: Peer-reviewed biomedical research article\n"
                         )
                     elif "frontiersin.org" in url:
-                        cited_report += "    Summary: Open-access scientific research publication\n"
+                        cited_report += (
+                            "    Summary: Open-access scientific research publication\n"
+                        )
                     else:
                         cited_report += "    Summary: Research source on AI healthcare applications\n"
                 cited_report += "\n"

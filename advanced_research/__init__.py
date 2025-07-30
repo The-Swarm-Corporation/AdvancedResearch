@@ -17,7 +17,7 @@ Key Features:
 
 """
 
-from .main import (
+from advanced_research.main import (
     # Main orchestrator class
     AdvancedResearch,
     # Dataclasses for system coordination
