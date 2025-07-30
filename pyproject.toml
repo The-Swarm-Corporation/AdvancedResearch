@@ -8,7 +8,7 @@ version = "0.1.0"
 description = "Advanced Multi-Agent Research System - Enhanced implementation of Anthropic's orchestrator-worker pattern with 90.2% performance improvement over single-agent systems"
 license = { text = "MIT" }
 authors = [
-    { name = "Kye Gomez", email = "kye@apac.ai" }
+    { name = "Kye Gomez", email = "kye@swarms.world" }
 ]
 requires-python = ">=3.10"
 readme = "README.md"

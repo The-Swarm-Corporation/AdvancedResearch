@@ -540,7 +540,7 @@ If you use this work in your research, please cite both the original paper and t
 
 - **Issues**: [GitHub Issues](https://github.com/The-Swarm-Corporation/AdvancedResearch/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/The-Swarm-Corporation/AdvancedResearch/discussions)
-- **Email**: kye@apac.ai
+- **Email**: kye@swarms.world
 - **Discord**: [Join our community](https://discord.gg/EamjgSaEQf)
 
 ## 🎯 Performance Benchmarks
