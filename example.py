@@ -4,7 +4,7 @@ from advanced_research import AdvancedResearch
 research_system = AdvancedResearch(max_iterations=1)
 
 # Run research
-results = research_system.research(
+results = research_system.run(
     "What are the latest developments in quantum computing?",
     export=True,
     export_path="quantum_computing_report.md",

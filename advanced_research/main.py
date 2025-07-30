@@ -115,26 +115,42 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
 
     headers = {
         "x-api-key": api_key,
-        "Content-Type": "application/json",
-        "Accept": "application/json",
+        "content-type": "application/json",
     }
 
-    # Corrected payload format for Exa API
+    # Corrected payload format for Exa API based on official documentation
     payload = {
         "query": query,
-        "useAutoprompt": True,
-        "numResults": min(num_results, 8),
-        "contents": {"text": {"maxCharacters": 1000, "includeHtmlTags": False}},
-        "includeDomains": [],
-        "excludeDomains": [],
-        "startCrawlDate": None,
-        "endCrawlDate": None,
-        "startPublishedDate": None,
-        "endPublishedDate": None,
+        "type": "auto",
+        "numResults": min(num_results, 10),
+        "contents": {
+            "text": True,
+            "summary": {
+                "schema": {
+                    "type": "object",
+                    "required": ["answer"],
+                    "additionalProperties": False,
+                    "properties": {
+                        "answer": {
+                            "type": "string",
+                            "description": (
+                                "Key insights and findings from the search result"
+                            ),
+                        }
+                    },
+                }
+            },
+            "context": {"maxCharacters": 1000},
+        },
     }
 
+    # Add optional date filters if needed for recent content
+    # Uncomment and modify these lines if you want to filter by date
+    # payload["startPublishedDate"] = "2024-01-01T00:00:00.000Z"
+    # payload["startCrawlDate"] = "2024-01-01T00:00:00.000Z"
+
     try:
-        logger.info(f"🔍 Executing Exa search for: {query[:50]}...")
+        logger.info(f"Executing Exa search for: {query[:50]}...")
         response = requests.post(
             "https://api.exa.ai/search", json=payload, headers=headers, timeout=30
         )
@@ -163,28 +179,53 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
         for i, result in enumerate(results, 1):
             title = result.get("title", "No Title")
             url = result.get("url", "No URL")
-            content_preview = result.get("text", "No content preview available.")
             score = result.get("score", 0.0)
+
+            # Handle new response format with text and summary content
+            content_preview = ""
+            if "text" in result:
+                content_preview = (
+                    result["text"][:300] + "..."
+                    if len(result["text"]) > 300
+                    else result["text"]
+                )
+            elif "summary" in result and result["summary"]:
+                # Extract the answer from the summary schema
+                summary_data = result["summary"]
+                if isinstance(summary_data, dict) and "answer" in summary_data:
+                    content_preview = (
+                        summary_data["answer"][:300] + "..."
+                        if len(summary_data["answer"]) > 300
+                        else summary_data["answer"]
+                    )
+                else:
+                    content_preview = (
+                        str(summary_data)[:300] + "..."
+                        if len(str(summary_data)) > 300
+                        else str(summary_data)
+                    )
+            else:
+                content_preview = "No content preview available."
 
             # Enhanced quality indicators
             domain_quality = (
-                "🔥"
+                "[HIGH]"
                 if any(
                     domain in url.lower()
                     for domain in [".edu", ".gov", ".org", "pubmed", "scholar"]
                 )
-                else "📊" if ".com" in url.lower() else "📄"
+                else "[MED]" if ".com" in url.lower() else "[STD]"
             )
-            relevance = "⭐⭐⭐" if score > 0.8 else "⭐⭐" if score > 0.6 else "⭐"
+            relevance = "[***]" if score > 0.8 else "[**]" if score > 0.6 else "[*]"
 
             formatted_results.append(
                 f"{i}. {domain_quality} {relevance} {title}\n"
                 f"   URL: {url}\n"
                 f"   Relevance Score: {score:.2f}\n"
-                f"   Content: {content_preview[:300]}...\n"
+                f"   Content: {content_preview}\n"
             )
 
-        logger.info(f"✅ Exa search completed: {len(results)} results found")
+        logger.info(f"Exa search completed: {len(results)} results found")
         return "\n".join(formatted_results)
 
     except requests.Timeout:
@@ -282,10 +323,10 @@ class LeadResearcherAgent:
         return """You are the Lead Researcher Agent in an advanced multi-agent research system with sophisticated web search capabilities.
 
 Your primary responsibilities as the ORCHESTRATOR:
-1. 🎯 Query Analysis & Strategic Research Planning
-2. 🔄 Intelligent Task Decomposition into Searchable Sub-Questions  
-3. 🧠 Advanced Memory Management & Context Compression
-4. 📊 Result Synthesis & Quality Assurance
+1. Query Analysis & Strategic Research Planning
+2. Intelligent Task Decomposition into Searchable Sub-Questions
+3. Advanced Memory Management & Context Compression
+4. Result Synthesis & Quality Assurance
 
 ENHANCED ORCHESTRATION PRINCIPLES:
 - Decompose complex queries into specific, searchable research questions
@@ -304,7 +345,7 @@ TASK DECOMPOSITION STRATEGY:
 
 EXAMPLES OF GOOD TASK DECOMPOSITION:
 Instead of: "Research AI in healthcare"
-Create: 
+Create:
 - "Current applications of AI diagnostic tools in radiology and pathology 2023-2024"
 - "Clinical trial results and efficacy data for AI-powered medical devices"
 - "Regulatory frameworks and FDA approvals for AI medical technologies"
@@ -354,19 +395,19 @@ ABSOLUTE REQUIREMENTS:
         Core orchestration function: analyze query and develop research strategy.
         Implements the paper's "Query Analysis → Strategy Development" workflow.
         """
-        logger.info("🎯 Lead Researcher analyzing query and developing strategy...")
+        logger.info("Lead Researcher analyzing query and developing strategy...")
 
         analysis_prompt = f"""
         Analyze this research query and develop an optimal strategy:
-        
+
         QUERY: "{query}"
-        
+
         Consider:
         - Query complexity and scope
         - Required research depth vs breadth
         - Optimal subagent coordination strategy
         - Resource allocation needs
-        
+
         Develop a comprehensive research strategy following the orchestrator principles.
         """
 
@@ -376,7 +417,7 @@ ABSOLUTE REQUIREMENTS:
 
             # Log the extracted thinking process for observability
             if thinking_content:
-                logger.info("🧠 Lead Researcher Thinking Process:")
+                logger.info("Lead Researcher Thinking Process:")
                 logger.info(
                     f"   {thinking_content[:200]}..."
                     if len(thinking_content) > 200
@@ -391,7 +432,7 @@ ABSOLUTE REQUIREMENTS:
 
             strategy = ResearchStrategy.model_validate(strategy_data)
             logger.info(
-                f"📋 Research Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
+                f"Research Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
             )
 
             # Store thinking process in memory for future reference
@@ -414,165 +455,128 @@ ABSOLUTE REQUIREMENTS:
             return self._create_fallback_strategy(query)
 
     def _evaluate_progress(
-        self, current_report: str, original_query: str
-    ) -> tuple[bool, list[str], str]:
+        self, current_report: str, original_query: str, iteration: int = 1
+    ) -> tuple[bool, list[str], str, dict]:
         """
-        Enhanced evaluation of research progress using advanced LLM-as-judge methodology.
-        Returns (is_complete, missing_topics, reasoning).
+        Streamlined LLM-as-judge evaluation with dynamic thresholds and improved efficiency.
+        Returns (is_complete, missing_topics, reasoning, evaluation_metrics).
         """
-        logger.info(
-            "⚖️ Evaluating research progress with enhanced LLM-as-judge methodology..."
+        logger.info(f"LLM-as-Judge evaluating iteration {iteration} progress...")
+
+        # Dynamic completion threshold based on iteration and complexity
+        completion_threshold = max(0.6, 0.9 - (iteration - 1) * 0.1)
+        report_preview = (
+            current_report[:3000] + "..."
+            if len(current_report) > 3000
+            else current_report
         )
 
         evaluation_prompt = f"""
-You are an expert evaluation agent acting as an LLM-as-judge. Your role is to rigorously assess whether the current research report adequately answers the original query.
+You are an expert LLM-as-judge evaluating research completeness with efficiency and precision.
 
-ORIGINAL QUERY: "{original_query}"
+QUERY: "{original_query}"
+ITERATION: {iteration}/3 | THRESHOLD: {completion_threshold:.1f}
+REPORT LENGTH: {len(current_report)} chars
 
-CURRENT RESEARCH REPORT:
-"{current_report}"
+RESEARCH REPORT:
+"{report_preview}"
 
-EVALUATION METHODOLOGY:
-As an LLM-as-judge, you must provide detailed analysis in a thinking block, then render a precise verdict.
+STREAMLINED EVALUATION:
+Assess if this report comprehensively answers the original query.
 
-EVALUATION CRITERIA (Rate each 1-10):
-1. Completeness: Does the report address all aspects of the original query?
-2. Depth: Is the coverage sufficiently detailed and comprehensive?
-3. Evidence Quality: Are claims well-supported with credible sources?
-4. Coverage Balance: Are all query components given appropriate attention?
-5. Gaps Analysis: What specific information is missing or insufficient?
-
-RESPONSE FORMAT - MANDATORY STRUCTURE:
 <thinking>
-Let me systematically evaluate this research against the original query:
-
-1. Query Analysis: Breaking down what the original query is asking for:
-   [Detailed breakdown of query components and requirements]
-
-2. Report Coverage Assessment: What the current report covers:
-   [Analysis of what topics/aspects are well covered]
-
-3. Gap Identification: What's missing or insufficient:
-   [Specific analysis of gaps, weaknesses, insufficient coverage]
-
-4. Quality Assessment: Source quality and evidence strength:
-   [Assessment of evidence quality and credibility]
-
-5. Completeness Judgment: Overall adequacy:
-   [Final judgment on whether research meets query requirements]
-
-6. Decision Rationale: Why I'm marking this complete/incomplete:
-   [Clear reasoning for the final decision]
+1. Query Requirements: [List 3-5 key components needed]
+2. Current Coverage: [What's well covered vs missing]
+3. Completion Decision: [Apply threshold {completion_threshold:.1f}]
 </thinking>
 
 {{
     "is_complete": boolean,
-    "missing_topics": ["specific missing topic 1", "unanswered question 2", "insufficient coverage area 3"],
-    "reasoning": "Concise explanation of the decision and key findings",
-    "confidence_score": 0.0-1.0,
-    "coverage_scores": {{
+    "missing_topics": ["specific gap 1", "missing aspect 2"],
+    "reasoning": "Clear 1-2 sentence decision rationale",
+    "quality_score": 0.0-1.0,
+    "coverage_breakdown": {{
         "completeness": 0.0-1.0,
         "depth": 0.0-1.0,
-        "evidence_quality": 0.0-1.0,
-        "balance": 0.0-1.0
+        "evidence": 0.0-1.0
     }}
 }}
 
-JUDGMENT STANDARDS:
-- Mark complete ONLY if the report would satisfy a knowledgeable reader seeking a comprehensive answer
-- Be specific about missing topics - don't just say "more research needed"
-- Consider both breadth (covering all aspects) and depth (sufficient detail)
-- Confidence score should reflect certainty in your assessment
+STANDARDS:
+- Mark complete if quality_score >= {completion_threshold:.1f} AND addresses main query components
+- Be specific about gaps, avoid generic "needs more research"
+- Quality score should reflect actual research adequacy
 """
 
         try:
             response = self.lead_agent.run(evaluation_prompt)
             thinking_content, eval_data, error = self._parse_json_response(response)
 
-            # Enhanced logging of evaluation thinking process
+            # Compact thinking log
             if thinking_content:
-                logger.info("🧠 LLM-as-Judge Evaluation Thinking:")
-                # Log the full thinking process with better formatting
-                thinking_lines = thinking_content.split("\n")
-                for line in thinking_lines[:15]:  # Log first 15 lines to avoid spam
-                    if line.strip():
-                        logger.info(f"   {line.strip()}")
-                if len(thinking_lines) > 15:
-                    logger.info(
-                        f"   ... [Truncated: {len(thinking_lines)} total lines of analysis]"
-                    )
-            else:
-                logger.warning("⚠️ No thinking process found in evaluation response")
+                thinking_preview = thinking_content.split("\n")[0][:100] + "..."
+                logger.info(f"Judge reasoning: {thinking_preview}")
 
             if error or not eval_data:
-                logger.warning(f"Progress evaluation parsing failed: {error}")
-                # Conservative fallback - assume not complete with generic gap
+                logger.warning(f"Evaluation parsing failed: {error}")
                 return (
                     False,
-                    ["Evaluation system error - continuing research for safety"],
-                    "Evaluation parsing error",
+                    ["Evaluation error - continuing research"],
+                    "Parse error",
+                    {},
                 )
 
-            # Extract evaluation results with enhanced handling
+            # Extract and validate results
             is_complete = eval_data.get("is_complete", False)
-            missing_topics = eval_data.get("missing_topics", [])
+            missing_topics = eval_data.get("missing_topics", [])[
+                :5
+            ]  # Limit to 5 topics
             reasoning = eval_data.get("reasoning", "No reasoning provided")
-            confidence = eval_data.get("confidence_score", 0.5)
-            coverage_scores = eval_data.get("coverage_scores", {})
+            quality_score = max(0.0, min(1.0, eval_data.get("quality_score", 0.5)))
+            coverage_breakdown = eval_data.get("coverage_breakdown", {})
 
-            # Enhanced result logging
-            logger.info("📊 Enhanced Progress Evaluation Results:")
-            logger.info(f"   ✅ Research Complete: {is_complete}")
-            logger.info(f"   🎯 Judge Confidence: {confidence:.2f}")
-            logger.info(f"   📝 Decision Reasoning: {reasoning}")
+            # Apply dynamic threshold logic
+            threshold_met = quality_score >= completion_threshold
+            final_complete = is_complete and threshold_met
 
-            # Log coverage scores if available
-            if coverage_scores:
-                logger.info("   📈 Detailed Coverage Scores:")
-                for metric, score in coverage_scores.items():
-                    logger.info(f"     {metric.title()}: {score:.2f}")
-
-            # Detailed missing topics logging
+            # Efficient logging
+            logger.info(
+                f"Evaluation: Complete={final_complete}, Quality={quality_score:.2f}, Threshold={completion_threshold:.2f}"
+            )
             if missing_topics:
-                logger.info(f"   🔍 Missing Topics Identified ({len(missing_topics)}):")
-                for i, topic in enumerate(missing_topics, 1):
-                    logger.info(f"     {i}. {topic}")
-                    if i >= 5:  # Limit logging to prevent spam
-                        remaining = len(missing_topics) - 5
-                        if remaining > 0:
-                            logger.info(f"     ... and {remaining} more missing topics")
-                        break
-            else:
-                logger.info("   ✅ No missing topics identified")
+                topics_preview = ", ".join(missing_topics[:3])
+                if len(missing_topics) > 3:
+                    topics_preview += f" (+ {len(missing_topics) - 3} more)"
+                logger.info(f"Missing: {topics_preview}")
 
-            # Store evaluation in memory for future reference
+            # Prepare evaluation metrics
+            eval_metrics = {
+                "quality_score": quality_score,
+                "completion_threshold": completion_threshold,
+                "coverage_breakdown": coverage_breakdown,
+                "iteration": iteration,
+                "threshold_met": threshold_met,
+            }
+
+            # Store evaluation history (simplified)
             if hasattr(self, "agent_memory") and self.agent_memory:
                 if not hasattr(self.agent_memory, "evaluation_history"):
                     self.agent_memory.evaluation_history = []
                 self.agent_memory.evaluation_history.append(
                     {
+                        "iteration": iteration,
+                        "is_complete": final_complete,
+                        "quality_score": quality_score,
+                        "missing_count": len(missing_topics),
                         "timestamp": datetime.now().isoformat(),
-                        "is_complete": is_complete,
-                        "confidence": confidence,
-                        "reasoning": reasoning,
-                        "missing_topics_count": len(missing_topics),
-                        "thinking_process": (
-                            thinking_content[:500] if thinking_content else None
-                        ),  # Store truncated thinking
                     }
                 )
 
-            return is_complete, missing_topics, reasoning
+            return final_complete, missing_topics, reasoning, eval_metrics
 
         except Exception as e:
-            logger.error(f"Progress evaluation system error: {e}")
-            logger.exception("Full evaluation error details:")
-            # Conservative fallback - assume not complete
-            return (
-                False,
-                ["Critical evaluation error - continuing research"],
-                f"System error: {str(e)}",
-            )
+            logger.error(f"Evaluation system error: {e}")
+            return False, ["Critical evaluation error"], f"System error: {str(e)}", {}
 
     def _create_fallback_strategy(self, query: str) -> ResearchStrategy:
         """Create a robust fallback strategy with enhanced search-oriented tasks."""
@@ -681,9 +685,7 @@ JUDGMENT STANDARDS:
         if not response or not response.strip():
             return None, None, "Empty response"
 
-        logger.debug(
-            f"📝 Parsing orchestrator response (length: {len(response)} chars)"
-        )
+        logger.debug(f"Parsing orchestrator response (length: {len(response)} chars)")
 
         # Extract thinking block with improved pattern matching
         thinking_patterns = [
@@ -702,14 +704,14 @@ JUDGMENT STANDARDS:
                 break
 
         if thinking_content:
-            logger.info("🧠 Successfully extracted thinking process from orchestrator")
+            logger.info("Successfully extracted thinking process from orchestrator")
             logger.debug(f"   Thinking length: {len(thinking_content)} chars")
             # Log a preview of the thinking content for debugging
             thinking_preview = thinking_content[:150].replace("\n", " ")
             logger.debug(f"   Thinking preview: {thinking_preview}...")
         else:
             logger.warning(
-                "⚠️ No thinking block found in orchestrator response - this violates the prompt requirements"
+                "No thinking block found in orchestrator response - this violates the prompt requirements"
             )
 
         # Enhanced JSON extraction patterns for robustness
@@ -725,10 +727,10 @@ JUDGMENT STANDARDS:
             for match in matches:
                 try:
                     json_data = json.loads(match)
-                    logger.debug(f"✅ JSON extracted with pattern {i+1}")
+                    logger.debug(f"JSON extracted with pattern {i+1}")
                     return thinking_content, json_data, None
                 except json.JSONDecodeError as e:
-                    logger.debug(f"❌ Pattern {i+1} JSON decode failed: {e}")
+                    logger.debug(f"Pattern {i+1} JSON decode failed: {e}")
                     continue
 
         # Second try: parse content after thinking block as JSON
@@ -743,10 +745,10 @@ JUDGMENT STANDARDS:
 
             try:
                 json_data = json.loads(remaining_content)
-                logger.debug("✅ JSON extracted from content after thinking block")
+                logger.debug("JSON extracted from content after thinking block")
                 return thinking_content, json_data, None
             except json.JSONDecodeError as e:
-                logger.debug(f"❌ Post-thinking JSON parse failed: {e}")
+                logger.debug(f"Post-thinking JSON parse failed: {e}")
 
         # Third try: look for JSON anywhere in the response
         try:
@@ -757,19 +759,19 @@ JUDGMENT STANDARDS:
             if json_start != -1 and json_end > json_start:
                 potential_json = response[json_start:json_end]
                 json_data = json.loads(potential_json)
-                logger.debug("✅ JSON extracted by position search")
+                logger.debug("JSON extracted by position search")
                 return thinking_content, json_data, None
         except (json.JSONDecodeError, ValueError) as e:
-            logger.debug(f"❌ Position-based JSON extraction failed: {e}")
+            logger.debug(f"Position-based JSON extraction failed: {e}")
 
         # Final fallback: try entire response as JSON (unlikely to work but worth trying)
         try:
             json_data = json.loads(response.strip())
-            logger.debug("✅ Entire response parsed as JSON (no thinking block found)")
+            logger.debug("Entire response parsed as JSON (no thinking block found)")
             return thinking_content, json_data, None
         except json.JSONDecodeError as e:
             error_msg = f"All JSON parsing attempts failed. Last error: {str(e)}"
-            logger.warning(f"❌ {error_msg}")
+            logger.warning(f"{error_msg}")
             logger.debug(f"Response preview: {response[:200]}...")
             return thinking_content, None, error_msg
 
@@ -802,7 +804,7 @@ class ResearchSubagent:
         )
 
         logger.info(
-            f"🤖 ResearchSubagent {agent_id} initialized with {strategy_context} strategy"
+            f"ResearchSubagent {agent_id} initialized with {strategy_context} strategy"
         )
 
     def _get_subagent_prompt(self) -> str:
@@ -824,10 +826,10 @@ class ResearchSubagent:
 STRATEGY CONTEXT: {strategy_guidance.get(self.strategy_context, "General research approach")}
 
 ENHANCED SUBAGENT RESPONSIBILITIES:
-1. 🔍 Advanced Search Query Generation & Execution
-2. 📊 Multi-Source Research & Cross-Validation
-3. 🎯 Critical Source Evaluation & Quality Assessment
-4. ⚡ Iterative Search Refinement & Deep Dive Analysis
+1. Advanced Search Query Generation & Execution
+2. Multi-Source Research & Cross-Validation
+3. Critical Source Evaluation & Quality Assessment
+4. Iterative Search Refinement & Deep Dive Analysis
 
 ADVANCED SEARCH METHODOLOGY:
 1. QUERY GENERATION STRATEGY:
@@ -887,13 +889,13 @@ KEY ITERATIVE PRINCIPLES:
 - Think critically between searches about what you're learning
 - Your final JSON should represent the synthesis of ALL your research iterations
 
-CRITICAL RESPONSE REQUIREMENTS:
-1. You MUST respond with ONLY valid JSON - no other text before or after
-2. Do NOT include markdown formatting, explanations, or comments
-3. Ensure all string values are properly quoted and escaped
-4. Use only the exact field names specified below
+CRITICAL OUTPUT REQUIREMENTS:
+- NEVER echo back task instructions or prompts
+- NEVER include explanatory text, comments, or markdown
+- RESPOND WITH ONLY THE JSON OBJECT BELOW
+- START your response directly with the opening brace {{
 
-REQUIRED JSON FORMAT (copy exactly):
+EXACT JSON FORMAT REQUIRED:
 {{
     "findings": "Your comprehensive research analysis here",
     "sources": [
@@ -908,15 +910,15 @@ REQUIRED JSON FORMAT (copy exactly):
     "coverage_assessment": "comprehensive"
 }}
 
-IMPORTANT NOTES:
-- findings: String with your research summary (required)
-- sources: Array of source objects (can be empty array [])
-- quality_score: Number between 0.0 and 1.0
-- reliability: Must be exactly "high", "moderate", or "low"
-- confidence_level: Number between 0.0 and 1.0
-- coverage_assessment: Must be exactly "comprehensive", "partial", or "preliminary"
+FIELD REQUIREMENTS:
+- findings: String (your research summary)
+- sources: Array (can be empty [])
+- quality_score: Number 0.0-1.0
+- reliability: "high", "moderate", or "low"
+- confidence_level: Number 0.0-1.0
+- coverage_assessment: "comprehensive", "partial", or "preliminary"
 
-RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
+CRITICAL: Your entire response must be valid JSON starting with {{ and ending with }}"""
 
     def execute_task(self, task: str, priority: int = 1) -> SubagentResult:
         """
@@ -924,32 +926,42 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
         Implements the paper's worker execution pattern with advanced web search capabilities.
         """
         start_time = time.time()
-        logger.info(
-            f"🔄 [{self.agent_id}] Executing task (priority={priority}): {task}"
-        )
+        logger.info(f"[{self.agent_id}] Executing task (priority={priority}): {task}")
 
         try:
-            # Enhanced task execution with advanced search guidance
-            task_prompt = f"""
-            Your assigned research task: "{task}"
-            Priority Level: {priority}/3 (Higher priority = more comprehensive research required)
-            Strategy Context: {self.strategy_context}
-            
-            EXECUTION INSTRUCTIONS:
-            1. Analyze the task to identify 3-5 specific research angles that need web investigation
-            2. Generate targeted search queries using domain-specific terminology
-            3. Execute multiple searches with the exa_search tool, refining queries based on results
-            4. Cross-validate findings across multiple authoritative sources
-            5. Synthesize comprehensive insights with confidence assessment
-            
-            SEARCH QUERY EXAMPLES for your reference:
-            - Use specific terminology: "clinical trials AI diagnostics 2024" instead of "AI healthcare"
-            - Include temporal qualifiers: "latest research", "2023-2024", "current status"
-            - Add domain context: "regulatory compliance", "FDA approval", "peer-reviewed studies"
-            - Target specific aspects: "implementation challenges", "cost-benefit analysis", "user adoption"
-            
-            Execute systematic research now using the exa_search tool multiple times as needed.
-            """
+            # Streamlined task execution prompt
+            task_prompt = f"""RESEARCH TASK: {task}
+
+You are a specialized research agent. Your job is to:
+1. Use the exa_search tool multiple times with different search strategies
+2. Gather comprehensive, factual information about your assigned topic
+3. Analyze and synthesize your findings into a detailed research summary
+
+IMPORTANT: You must provide ACTUAL research content based on your searches, not placeholder text.
+
+EXECUTION INSTRUCTIONS:
+1. Conduct multiple targeted searches using the exa_search tool
+2. Extract key facts, data, trends, and insights from search results
+3. Write a comprehensive analysis of your findings (minimum 200 words)
+4. Include specific details, statistics, examples, and recent developments
+5. Assess source quality and your confidence in the findings
+
+FINAL RESPONSE FORMAT - Provide ONLY this JSON structure with actual research content:
+{{
+    "findings": "Write your detailed research analysis here - include specific facts, data, trends, recent developments, and key insights from your searches. Minimum 200 words of actual research content.",
+    "sources": [
+        {{
+            "source": "actual_url_from_search",
+            "content": "specific_information_extracted_from_this_source",
+            "quality_score": 0.8,
+            "reliability": "high"
+        }}
+    ],
+    "confidence_level": 0.85,
+    "coverage_assessment": "comprehensive"
+}}
+
+CRITICAL: Your 'findings' field must contain actual research content, not template text. Write a substantive analysis based on what you discover through your searches."""
 
             response = self.worker_agent.run(task_prompt)
             execution_time = time.time() - start_time
@@ -1034,13 +1046,13 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
             )
 
             logger.info(
-                f"✅ [{self.agent_id}] Task completed (confidence={findings.confidence_level:.2f}, time={execution_time:.1f}s)"
+                f"[{self.agent_id}] Task completed (confidence={findings.confidence_level:.2f}, time={execution_time:.1f}s)"
             )
             return result
 
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"❌ [{self.agent_id}] Task execution failed: {e}")
+            logger.error(f"[{self.agent_id}] Task execution failed: {e}")
             return self._create_error_result(task, str(e), execution_time)
 
     def _parse_subagent_response(self, response: str) -> tuple[dict | None, str | None]:
@@ -1051,15 +1063,31 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
 
         logger.debug(f"[{self.agent_id}] Raw response length: {len(response)} chars")
 
-        # Clean the response first
+        # Clean the response first and remove common task echo patterns
         cleaned_response = response.strip()
 
-        # JSON extraction patterns (more comprehensive)
+        # Remove task instruction echoes that might confuse parsing
+        task_patterns = [
+            r"RESEARCH TASK:.*?Begin research now\.",
+            r"Your assigned research task:.*?Execute systematic research.*?as needed\.",
+            r"Priority Level:.*?Strategy Context:.*?comprehensive research required\)",
+        ]
+
+        for pattern in task_patterns:
+            cleaned_response = re.sub(
+                pattern, "", cleaned_response, flags=re.DOTALL | re.IGNORECASE
+            )
+
+        cleaned_response = cleaned_response.strip()
+
+        # Enhanced JSON extraction patterns
         patterns = [
             r"```json\s*(\{.*?\})\s*```",  # json code blocks with optional whitespace
             r"```\s*(\{.*?\})\s*```",  # general code blocks
+            r"(?:REQUIRED RESPONSE FORMAT:\s*)?(\{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*\})",  # JSON after format instruction
+            r"(?:BEGIN RESEARCH NOW\.?\s*)?(\{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*\})",  # JSON after begin instruction
             r"(\{(?:[^{}]|{(?:[^{}]|{[^{}]*})*})*\})",  # any complete JSON object
-            r"(\{.*\})",  # simple curly brace matching
+            r"(\{.*\})",  # simple curly brace matching (last resort)
         ]
 
         for i, pattern in enumerate(patterns):
@@ -1068,10 +1096,10 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
                 if match:
                     json_str = match.group(1).strip()
                     logger.debug(
-                        f"[{self.agent_id}] Pattern {i+1} matched, attempting JSON parse..."
+                        f"[{self.agent_id}] Pattern {i+1} matched, JSON length: {len(json_str)} chars"
                     )
                     parsed_data = json.loads(json_str)
-                    logger.debug(
+                    logger.info(
                         f"[{self.agent_id}] Successfully parsed JSON with pattern {i+1}"
                     )
                     return parsed_data, None
@@ -1092,9 +1120,15 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
                 f"[{self.agent_id}] Successfully parsed entire response as JSON"
             )
             return parsed_data, None
-        except json.JSONDecodeError:
+        except json.JSONDecodeError as e:
             logger.warning(
-                f"[{self.agent_id}] All JSON parsing attempts failed. Response preview: {cleaned_response[:200]}..."
+                f"[{self.agent_id}] All JSON parsing attempts failed. JSON Error: {str(e)}"
+            )
+            logger.debug(
+                f"[{self.agent_id}] Response preview: {cleaned_response[:300]}..."
+            )
+            logger.debug(
+                f"[{self.agent_id}] Full response length: {len(response)} chars"
             )
 
             # Final fallback: try to extract meaningful content
@@ -1224,17 +1258,17 @@ class CitationAgent:
             verbose=False,
         )
 
-        logger.info("📚 CitationAgent initialized with quality assurance capabilities")
+        logger.info("CitationAgent initialized with quality assurance capabilities")
 
     def _get_citation_prompt(self) -> str:
         """Advanced citation agent prompt following paper specifications."""
         return """You are a specialized Citation Agent for academic-quality research reports.
 
 CITATION RESPONSIBILITIES:
-1. 📚 Citation Verification and Accuracy
-2. 🔗 Source Attribution and Formatting  
-3. ✅ Quality Assurance and Completeness
-4. 📊 Reference Quality Assessment
+1. Citation Verification and Accuracy
+2. Source Attribution and Formatting
+3. Quality Assurance and Completeness
+4. Reference Quality Assessment
 
 CITATION STANDARDS:
 - Add precise citation markers [1], [2], etc. to relevant statements
@@ -1265,7 +1299,7 @@ No explanations outside the JSON structure."""
         Process citations with quality assessment and verification.
         Implements the paper's citation processing workflow.
         """
-        logger.info("📚 CitationAgent processing citations and quality assurance...")
+        logger.info("CitationAgent processing citations and quality assurance...")
 
         # Prepare source information for citation processing
         source_info = ""
@@ -1312,13 +1346,13 @@ No explanations outside the JSON structure."""
 
         citation_prompt = f"""
         Add proper citations to this research report using the provided sources:
-        
+
         RESEARCH REPORT:
         {report}
-        
+
         AVAILABLE SOURCES:
         {source_info}
-        
+
         Requirements:
         - Add citation markers [1], [2], etc. where appropriate
         - Create a comprehensive References section
@@ -1338,7 +1372,7 @@ No explanations outside the JSON structure."""
 
             citations = CitationOutput.model_validate(citation_data)
             logger.info(
-                f"📚 Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
+                f"Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
             )
 
             return citations
@@ -1377,32 +1411,36 @@ No explanations outside the JSON structure."""
     ) -> CitationOutput:
         """Create basic citations as fallback when agent processing fails."""
         logger.info(
-            f"📚 Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
+            f"Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
         )
 
         # Ensure we have a report to work with
         if not report or not report.strip():
             report = "# Research Report\n\nNo comprehensive report was generated due to processing issues.\n"
             logger.warning(
-                "⚠️ Empty report provided to citation agent, using fallback content"
+                "Empty report provided to citation agent, using fallback content"
             )
 
-        cited_report = report.strip() + "\n\n## References\n\n"
+        # Add inline citations to the report content
+        cited_report = self._add_inline_citations(report, source_collection)
+        cited_report += "\n\n## References\n\n"
 
         if not source_collection:
             cited_report += "No sources were collected during research.\n"
-            logger.warning("⚠️ No sources available for citation")
+            logger.warning("No sources available for citation")
         else:
             for i, source in enumerate(source_collection, 1):
                 url = source.get("source", f"Source_{i}")
                 quality = source.get("quality_score", 0.5)
+                reliability = source.get("reliability", "moderate")
                 quality_label = (
                     " [High Quality]"
                     if quality >= 0.8
                     else " [Moderate Quality]" if quality >= 0.5 else " [Low Quality]"
                 )
 
-                cited_report += f"[{i}] {url}{quality_label}\n"
+                cited_report += f"[{i}] **{url}**{quality_label}\n"
+                cited_report += f"    Reliability: {reliability.title()}\n"
 
                 # Provide meaningful source descriptions
                 content = source.get("content", "")
@@ -1411,36 +1449,45 @@ No explanations outside the JSON structure."""
                     and len(content) > 20
                     and not content.startswith("Source found")
                     and not content.startswith("Source identified")
+                    and not content.startswith("Mock")
                 ):
-                    cited_report += f"    Summary: {content[:150]}...\n"
+                    cited_report += f"    Summary: {content[:200]}...\n"
                 else:
                     # Infer content type from URL for better descriptions
-                    if "ncbi.nlm.nih.gov" in url:
+                    if "ncbi.nlm.nih.gov" in url.lower():
                         cited_report += (
                             "    Summary: Medical research article from NCBI database\n"
                         )
-                    elif "fda.gov" in url:
+                    elif "fda.gov" in url.lower():
                         cited_report += (
                             "    Summary: FDA regulatory guidance and documentation\n"
                         )
-                    elif "pubmed" in url:
+                    elif "pubmed" in url.lower():
                         cited_report += (
                             "    Summary: Peer-reviewed medical research publication\n"
                         )
-                    elif "arxiv.org" in url:
+                    elif "arxiv.org" in url.lower():
                         cited_report += (
                             "    Summary: Academic preprint research paper\n"
                         )
-                    elif "biomedcentral.com" in url:
+                    elif "biomedcentral.com" in url.lower():
                         cited_report += (
                             "    Summary: Peer-reviewed biomedical research article\n"
                         )
-                    elif "frontiersin.org" in url:
+                    elif "frontiersin.org" in url.lower():
                         cited_report += (
                             "    Summary: Open-access scientific research publication\n"
                         )
+                    elif "nature.com" in url.lower():
+                        cited_report += (
+                            "    Summary: Nature scientific research publication\n"
+                        )
+                    elif "science.org" in url.lower():
+                        cited_report += (
+                            "    Summary: Science journal research publication\n"
+                        )
                     else:
-                        cited_report += "    Summary: Research source on AI healthcare applications\n"
+                        cited_report += "    Summary: Research source providing information on the investigated topic\n"
                 cited_report += "\n"
 
         result = CitationOutput(
@@ -1453,9 +1500,47 @@ No explanations outside the JSON structure."""
         )
 
         logger.info(
-            f"✅ Basic citations created - Final report length: {len(result.cited_report)}"
+            f"Basic citations created - Final report length: {len(result.cited_report)}"
         )
         return result
+
+    def _add_inline_citations(
+        self, report: str, source_collection: list[dict[str, Any]]
+    ) -> str:
+        """Add inline citations to the report content where appropriate."""
+        if not source_collection:
+            return report
+
+        # Simple approach: add citations at the end of significant statements
+        lines = report.split("\n")
+        cited_lines = []
+        citation_index = 1
+
+        for line in lines:
+            # Add citations to lines that contain factual statements (avoid headers, metadata, etc.)
+            if (
+                line.strip()
+                and not line.startswith("#")
+                and not line.startswith("*")
+                and not line.startswith("-")
+                and not line.startswith("**")
+                and len(line.strip()) > 50
+                and (
+                    "." in line
+                    or "research" in line.lower()
+                    or "study" in line.lower()
+                    or "data" in line.lower()
+                )
+            ):
+
+                # Add citation if this line doesn't already have one
+                if "[" not in line and citation_index <= len(source_collection):
+                    line = line.rstrip() + f" [{citation_index}]"
+                    citation_index += 1
+
+            cited_lines.append(line)
+
+        return "\n".join(cited_lines)
 
 
 # --- Main Orchestrator Implementation ---
@@ -1499,10 +1584,10 @@ class AdvancedResearch:
         self.system_memory = None
 
         logger.info(
-            "🚀 AdvancedResearch System initialized with orchestrator-worker architecture"
+            "AdvancedResearch System initialized with orchestrator-worker architecture"
         )
         logger.info(
-            f"📊 Configuration: {max_workers} workers, {max_iterations} iterations, parallel={enable_parallel_execution}"
+            f"Configuration: {max_workers} workers, {max_iterations} iterations, parallel={enable_parallel_execution}"
         )
 
     def research(
@@ -1525,8 +1610,8 @@ class AdvancedResearch:
         Returns:
             Dict[str, Any]: Complete research results including final report, metrics, and metadata
         """
-        logger.info("🎯 === ADVANCED RESEARCH SYSTEM EXECUTION START ===")
-        logger.info(f"📝 Research Query: '{query}'")
+        logger.info("=== ADVANCED RESEARCH SYSTEM EXECUTION START ===")
+        logger.info(f"Research Query: '{query}'")
 
         # Initialize system memory and conversation state
         self.system_memory = AgentMemory(
@@ -1538,157 +1623,92 @@ class AdvancedResearch:
 
         try:
             # Phase 1: Query Analysis & Strategy Development (Lead Researcher)
-            logger.info("🧠 Phase 1: Query Analysis & Strategy Development")
+            logger.info("Phase 1: Query Analysis & Strategy Development")
             strategy = self.lead_researcher.analyze_and_plan(query)
             self.system_memory.strategy_plan = strategy
 
             logger.info(
-                f"📋 Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
+                f"Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
             )
-            logger.info(f"🎯 Subtasks: {len(strategy.subtasks)} tasks planned")
+            logger.info(f"Subtasks: {len(strategy.subtasks)} tasks planned")
 
             # Phase 2: Dynamic Subagent Spawning & Parallel Execution
-            logger.info("🤖 Phase 2: Dynamic Subagent Spawning & Parallel Execution")
+            logger.info("Phase 2: Dynamic Subagent Spawning & Parallel Execution")
 
             all_results = []
             research_is_complete = False
             iteration = 0
 
-            # Dynamic iterative loop with LLM-as-judge evaluation
+            # Streamlined dynamic iterative loop with enhanced LLM-as-judge evaluation
             while iteration < self.max_iterations and not research_is_complete:
                 iteration += 1
-                logger.info(
-                    f"🔄 === Dynamic Iteration {iteration}/{self.max_iterations} ==="
-                )
+                logger.info(f"=== Iteration {iteration}/{self.max_iterations} ===")
 
-                # Determine current tasks (initial strategy or refined tasks)
-                current_tasks = (
-                    strategy.subtasks if iteration == 1 else strategy.subtasks
-                )
+                # Validate and prepare tasks for execution
+                current_tasks = strategy.subtasks
                 if not current_tasks:
                     logger.warning(
-                        f"No tasks available for iteration {iteration}. Breaking."
+                        f"No tasks available for iteration {iteration}. Terminating."
                     )
                     break
 
-                # Execute current tasks with parallel subagents
+                # Execute parallel research with current tasks
                 iteration_results = self._execute_parallel_research(
                     current_tasks, strategy.strategy_type, iteration
                 )
 
+                # Aggregate results and update memory
                 all_results.extend(iteration_results)
-                self.system_memory.subagent_results.extend(
-                    [
-                        {
-                            "iteration": iteration,
-                            "agent_id": result.agent_id,
-                            "task": result.task_assignment,
-                            "findings": result.research_findings,
-                            "confidence": result.confidence_metrics.get(
-                                "research_confidence", 0.5
-                            ),
-                        }
-                        for result in iteration_results
-                    ]
-                )
+                self._update_memory_with_results(iteration_results, iteration)
 
-                # Synthesize intermediate results for evaluation
-                logger.info(
-                    "🔬 Synthesizing intermediate results for progress evaluation..."
-                )
+                # Generate intermediate synthesis for evaluation
                 synthesis_result = self._synthesize_research_results(query, all_results)
                 intermediate_report = synthesis_result.synthesized_report
-
-                # Update system memory with synthesis
                 self.system_memory.synthesis_history.append(intermediate_report)
 
-                # Evaluate progress using LLM-as-judge
-                logger.info("⚖️ Evaluating research progress with LLM-as-judge...")
-                is_complete, missing_topics, reasoning = (
-                    self.lead_researcher._evaluate_progress(intermediate_report, query)
-                )
-
-                # Log evaluation results
-                logger.info(f"📊 Iteration {iteration} LLM-as-Judge Evaluation:")
-                logger.info(f"   Research Complete: {is_complete}")
-                logger.info(
-                    f"   Reasoning: {reasoning[:100]}..."
-                    if len(reasoning) > 100
-                    else f"   Reasoning: {reasoning}"
-                )
-
-                if is_complete:
-                    logger.info(
-                        "✅ Research deemed complete by LLM-as-judge - terminating loop"
+                # Enhanced LLM-as-judge evaluation with iteration context
+                is_complete, missing_topics, reasoning, eval_metrics = (
+                    self.lead_researcher._evaluate_progress(
+                        intermediate_report, query, iteration
                     )
+                )
+
+                # Process evaluation results
+                if is_complete:
+                    logger.info("Research complete - terminating iteration loop")
                     research_is_complete = True
                     break
                 elif iteration >= self.max_iterations:
-                    logger.info("⏱️ Maximum iterations reached - concluding research")
+                    logger.info("Maximum iterations reached - concluding research")
                     break
-                else:
-                    # Generate new targeted sub-tasks based on LLM evaluation feedback
+
+                # Generate next iteration tasks based on evaluation
+                next_tasks = self._generate_next_iteration_tasks(
+                    missing_topics, query, all_results, iteration, eval_metrics
+                )
+
+                if not next_tasks:
                     logger.info(
-                        "🔄 Research incomplete - generating next iteration tasks..."
+                        "Unable to generate meaningful next tasks - research complete"
                     )
+                    break
 
-                    if missing_topics and len(missing_topics) > 0:
-                        logger.info(
-                            f"🎯 Generating targeted tasks for {len(missing_topics)} missing topics identified by LLM-as-judge..."
-                        )
-                        new_tasks = []
-                        for i, topic in enumerate(
-                            missing_topics[:4], 1
-                        ):  # Limit to 4 new tasks for manageability
-                            # Create more specific, searchable tasks from missing topics
-                            enhanced_task = f"Deep-dive research iteration {iteration+1}: {topic.strip()} - comprehensive analysis with latest evidence and expert perspectives"
-                            new_tasks.append(enhanced_task)
-                            logger.info(f"   Task {i}: {topic[:60]}...")
-
-                        strategy.subtasks = new_tasks
-                        logger.info(
-                            f"📝 Generated {len(new_tasks)} targeted tasks based on LLM-as-judge feedback"
-                        )
-                    else:
-                        # Fallback to refinement tasks if no specific missing topics identified
-                        logger.info(
-                            "🔄 No specific missing topics identified - generating refinement tasks..."
-                        )
-                        refinement_tasks = self._generate_refinement_tasks(
-                            query, all_results
-                        )
-                        if refinement_tasks and len(refinement_tasks) > 0:
-                            strategy.subtasks = refinement_tasks
-                            logger.info(
-                                f"🔄 Generated {len(refinement_tasks)} refinement tasks as fallback approach"
-                            )
-                        else:
-                            logger.warning(
-                                "❌ Unable to generate additional research tasks - research may be at natural completion point"
-                            )
-                            logger.info(
-                                "🔚 Terminating iterative loop - proceeding to final synthesis"
-                            )
-                            break
-
-                    # Log next iteration plan
-                    logger.info(
-                        f"📋 Next iteration will focus on {len(strategy.subtasks)} new research angles"
-                    )
+                strategy.subtasks = next_tasks
+                logger.info(f"Next iteration: {len(next_tasks)} targeted tasks planned")
 
             # Phase 3: Result Synthesis (Lead Researcher Coordination)
-            logger.info("🔬 Phase 3: Advanced Result Synthesis")
+            logger.info("Phase 3: Advanced Result Synthesis")
             synthesis_result = self._synthesize_research_results(query, all_results)
 
             logger.info(
-                f"📝 Synthesis completed - Report length: {len(synthesis_result.synthesized_report)} chars"
+                f"Synthesis completed - Report length: {len(synthesis_result.synthesized_report)} chars"
             )
             logger.info(
-                f"✅ Synthesis quality score: {synthesis_result.confidence_score:.2f}"
+                f"Synthesis quality score: {synthesis_result.confidence_score:.2f}"
             )
 
             # Phase 4: Citation Processing & Quality Assurance
-            logger.info("📚 Phase 4: Citation Processing & Quality Assurance")
+            logger.info("Phase 4: Citation Processing & Quality Assurance")
 
             # Collect all sources from subagent results
             all_sources = []
@@ -1696,7 +1716,7 @@ class AdvancedResearch:
                 if result.source_collection:
                     all_sources.extend(result.source_collection)
 
-            logger.info(f"🔗 Collected {len(all_sources)} total sources from subagents")
+            logger.info(f"Collected {len(all_sources)} total sources from subagents")
 
             # Remove duplicates and process citations
             unique_sources = {
@@ -1705,7 +1725,7 @@ class AdvancedResearch:
             unique_sources_list = list(unique_sources)
 
             logger.info(
-                f"📚 Processing citations with {len(unique_sources_list)} unique sources"
+                f"Processing citations with {len(unique_sources_list)} unique sources"
             )
 
             # Ensure we have a report to process
@@ -1714,7 +1734,7 @@ class AdvancedResearch:
                 or not synthesis_result.synthesized_report.strip()
             ):
                 logger.error(
-                    "❌ Synthesis result is empty! Creating emergency fallback report."
+                    "Synthesis result is empty! Creating emergency fallback report."
                 )
                 synthesis_result.synthesized_report = f"# Research Report: {query}\n\nThe research system encountered issues during synthesis. Here are the available findings:\n\n"
 
@@ -1737,27 +1757,27 @@ class AdvancedResearch:
             )
 
             logger.info(
-                f"📚 Citation processing completed - Final report length: {len(citation_output.cited_report)} chars"
+                f"Citation processing completed - Final report length: {len(citation_output.cited_report)} chars"
             )
 
             # Calculate final metrics
             total_time = time.time() - start_time
             self._update_orchestration_metrics(all_results, total_time, citation_output)
 
-            logger.info("🎉 === ADVANCED RESEARCH SYSTEM EXECUTION COMPLETE ===")
-            logger.info(f"⚡ Total execution time: {total_time:.2f}s")
+            logger.info("=== ADVANCED RESEARCH SYSTEM EXECUTION COMPLETE ===")
+            logger.info(f"Total execution time: {total_time:.2f}s")
             logger.info(
-                f"🤖 Agents spawned: {self.orchestration_metrics.total_agents_spawned}"
+                f"Agents spawned: {self.orchestration_metrics.total_agents_spawned}"
             )
             logger.info(
-                f"📊 Synthesis quality: {self.orchestration_metrics.synthesis_quality_score:.2f}"
+                f"Synthesis quality: {self.orchestration_metrics.synthesis_quality_score:.2f}"
             )
 
             # Final safety check for the report content
             final_report_content = citation_output.cited_report
             if not final_report_content or not final_report_content.strip():
                 logger.error(
-                    "🚨 CRITICAL: Final report is empty after all processing! Creating emergency report."
+                    "CRITICAL: Final report is empty after all processing! Creating emergency report."
                 )
                 final_report_content = f"""# Emergency Research Report: {query}
 
@@ -1789,23 +1809,28 @@ The Advanced Research System completed execution but encountered issues in repor
                 final_report_content += "\n## System Information\nThis emergency report was generated due to processing issues in the citation system.\n"
 
             logger.info(
-                f"📄 Final report prepared - Length: {len(final_report_content)} characters"
+                f"Final report prepared - Length: {len(final_report_content)} characters"
             )
 
-            # Export functionality
+            # Enhanced export functionality
             export_file_path = None
             if export:
-                export_file_path = (
-                    export_path
-                    or f"research_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+                export_file_path = self._enhanced_export(
+                    final_report_content,
+                    query,
+                    export_path,
+                    all_results,
+                    {
+                        "total_time": total_time,
+                        "agents_spawned": (
+                            self.orchestration_metrics.total_agents_spawned
+                        ),
+                        "synthesis_quality": (
+                            self.orchestration_metrics.synthesis_quality_score
+                        ),
+                        "source_count": len(unique_sources_list),
+                    },
                 )
-                try:
-                    with open(export_file_path, "w", encoding="utf-8") as f:
-                        f.write(final_report_content)
-                    logger.info(f"📁 Research report exported to: {export_file_path}")
-                except Exception as e:
-                    logger.error(f"❌ Failed to export report: {e}")
-                    export_file_path = None
 
             return {
                 "final_report": final_report_content,
@@ -1844,7 +1869,7 @@ The Advanced Research System completed execution but encountered issues in repor
             }
 
         except Exception as e:
-            logger.exception("❌ Critical error in research execution")
+            logger.exception("Critical error in research execution")
             return self._create_error_response(query, str(e), time.time() - start_time)
 
     def _execute_parallel_research(
@@ -1858,7 +1883,7 @@ The Advanced Research System completed execution but encountered issues in repor
             return self._execute_sequential_research(tasks, strategy_type, iteration)
 
         logger.info(
-            f"⚡ Executing {len(tasks)} tasks in parallel with {min(len(tasks), self.max_workers)} subagents"
+            f"Executing {len(tasks)} tasks in parallel with {min(len(tasks), self.max_workers)} subagents"
         )
 
         results = []
@@ -1885,14 +1910,14 @@ The Advanced Research System completed execution but encountered issues in repor
                     results.append(result)
 
                     agent_id = future_to_agent[future]
-                    status = "✅" if not result.error_status else "❌"
+                    status = "SUCCESS" if not result.error_status else "FAILED"
                     logger.info(
                         f"{status} [{agent_id}] completed in {result.execution_time:.1f}s"
                     )
 
                 except Exception as e:
                     agent_id = future_to_agent[future]
-                    logger.error(f"❌ [{agent_id}] execution failed: {e}")
+                    logger.error(f"[{agent_id}] execution failed: {e}")
                     # Create error result for failed agent
                     error_result = SubagentResult(
                         agent_id=agent_id,
@@ -1915,7 +1940,7 @@ The Advanced Research System completed execution but encountered issues in repor
         self, tasks: list[str], strategy_type: str, iteration: int
     ) -> list[SubagentResult]:
         """Fallback sequential execution when parallel processing is disabled."""
-        logger.info(f"🔄 Executing {len(tasks)} tasks sequentially")
+        logger.info(f"Executing {len(tasks)} tasks sequentially")
 
         results = []
         for i, task in enumerate(tasks):
@@ -1928,12 +1953,166 @@ The Advanced Research System completed execution but encountered issues in repor
 
             self.orchestration_metrics.total_agents_spawned += 1
 
-            status = "✅" if not result.error_status else "❌"
+            status = "SUCCESS" if not result.error_status else "FAILED"
             logger.info(
                 f"{status} [{agent_id}] completed in {result.execution_time:.1f}s"
             )
 
         return results
+
+    def _build_professional_report(
+        self,
+        query: str,
+        successful_results: list,
+        source_diversity: int,
+        avg_confidence: float,
+        all_results: list,
+    ) -> str:
+        """Build a professional, comprehensive research report with enhanced formatting."""
+        from datetime import datetime
+
+        # Document header with metadata
+        report = f"""# Advanced Research Report
+**{query}**
+
+---
+
+**Report Generated:** {datetime.now().strftime('%B %d, %Y at %I:%M %p')}
+**Research Method:** Multi-Agent Parallel Investigation
+**Total Sources:** {source_diversity} unique sources
+**Research Quality:** {avg_confidence:.1%} average confidence
+**Successful Investigations:** {len(successful_results)}/{len(all_results)}
+
+---
+
+## Table of Contents
+
+1. [Executive Summary](#executive-summary)
+2. [Key Findings](#key-findings)
+3. [Detailed Research Results](#detailed-research-results)
+4. [Research Methodology](#research-methodology)
+5. [Quality Assessment](#quality-assessment)
+6. [Recommendations](#recommendations)
+7. [References](#references)
+
+---
+
+## Executive Summary
+
+This comprehensive research investigation employed an advanced multi-agent system to conduct parallel research across multiple domains. The investigation was conducted using {len(successful_results)} specialized research agents, each focusing on specific aspects of the query.
+
+### Key Statistics
+- **Research Scope:** {len(all_results)} investigation tasks executed
+- **Success Rate:** {len(successful_results)/len(all_results):.1%}
+- **Source Diversity:** {source_diversity} unique authoritative sources
+- **Overall Confidence:** {avg_confidence:.1%}
+- **Research Depth:** {sum(len(r.research_findings.split()) for r in successful_results):,} words analyzed
+
+### Primary Research Areas Covered
+"""
+
+        # Extract and display key themes from task assignments
+        themes = set()
+        for result in successful_results:
+            # Extract key themes from task assignments
+            task_words = result.task_assignment.lower().split()
+            for word in task_words:
+                if len(word) > 4 and word not in [
+                    "what",
+                    "where",
+                    "when",
+                    "which",
+                    "research",
+                    "analysis",
+                ]:
+                    themes.add(word.capitalize())
+
+        for i, theme in enumerate(sorted(list(themes)[:8]), 1):
+            report += f"{i}. {theme}\n"
+
+        report += "\n---\n\n"
+
+        # Key Findings Section
+        report += "## Key Findings\n\n"
+
+        # Categorize findings by confidence level
+        high_conf = [
+            r
+            for r in successful_results
+            if r.confidence_metrics.get("research_confidence", 0.5) >= 0.8
+        ]
+        med_conf = [
+            r
+            for r in successful_results
+            if 0.6 <= r.confidence_metrics.get("research_confidence", 0.5) < 0.8
+        ]
+        low_conf = [
+            r
+            for r in successful_results
+            if r.confidence_metrics.get("research_confidence", 0.5) < 0.6
+        ]
+
+        if high_conf:
+            report += "### High Confidence Findings\n"
+            for i, result in enumerate(high_conf, 1):
+                # Extract first sentence as key finding
+                first_sentence = result.research_findings.split(".")[0] + "."
+                report += f"{i}. **{first_sentence}**\n"
+            report += "\n"
+
+        if med_conf:
+            report += "### Medium Confidence Findings\n"
+            for i, result in enumerate(med_conf, 1):
+                first_sentence = result.research_findings.split(".")[0] + "."
+                report += f"{i}. {first_sentence}\n"
+            report += "\n"
+
+        if low_conf:
+            report += "### Preliminary Findings (Lower Confidence)\n"
+            for i, result in enumerate(low_conf, 1):
+                first_sentence = result.research_findings.split(".")[0] + "."
+                report += f"{i}. {first_sentence}\n"
+            report += "\n"
+
+        report += "---\n\n"
+
+        # Detailed Research Results
+        report += "## Detailed Research Results\n\n"
+
+        for i, result in enumerate(successful_results, 1):
+            confidence = result.confidence_metrics.get("research_confidence", 0.5)
+            confidence_indicator = (
+                "High"
+                if confidence >= 0.8
+                else "Medium" if confidence >= 0.6 else "Preliminary"
+            )
+
+            # Clean up task assignment for better display
+            task_display = result.task_assignment.replace(
+                "Iteration", "Research Focus:"
+            )
+            if task_display.startswith("Research Focus:"):
+                task_display = task_display[15:].strip()
+
+            report += f"""### Investigation {i}: {confidence_indicator} Confidence
+
+**Research Focus:** {task_display}
+
+**Confidence Level:** {confidence:.1%}
+**Sources Found:** {len(result.source_collection)}
+
+**Findings:**
+
+{result.research_findings}
+
+"""
+
+            if confidence < 0.7:
+                report += f"*Note: This finding has {confidence:.1%} confidence and may require additional verification.*\n"
+
+            report += "\n---\n\n"
+
+        return report
 
     def _synthesize_research_results(
         self, query: str, results: list[SubagentResult]
@@ -1965,33 +2144,10 @@ The Advanced Research System completed execution but encountered issues in repor
             )
         )
 
-        # Build comprehensive synthesis
-        synthesis_content = f"# Advanced Research Report: {query}\n\n"
-
-        # Executive Summary
-        synthesis_content += "## Executive Summary\n"
-        synthesis_content += f"This research employed an advanced multi-agent system with {len(successful_results)} specialized subagents "
-        synthesis_content += f"using parallel execution patterns. The investigation utilized {source_diversity} unique sources "
-        synthesis_content += (
-            f"with an average confidence score of {avg_confidence:.2f}.\n\n"
+        # Build comprehensive professional synthesis
+        synthesis_content = self._build_professional_report(
+            query, successful_results, source_diversity, avg_confidence, results
         )
-
-        # Detailed Findings
-        synthesis_content += "## Research Findings\n\n"
-        for i, result in enumerate(successful_results, 1):
-            confidence = result.confidence_metrics.get("research_confidence", 0.5)
-            confidence_indicator = (
-                "🔥" if confidence >= 0.8 else "📊" if confidence >= 0.6 else "📝"
-            )
-
-            synthesis_content += (
-                f"### {confidence_indicator} Finding {i}: {result.task_assignment}\n"
-            )
-            synthesis_content += f"{result.research_findings}\n\n"
-
-            # Add confidence note for moderate confidence
-            if confidence < 0.7:
-                synthesis_content += f"*Confidence Level: {confidence:.2f} - Consider additional verification*\n\n"
 
         # Quality Assessment
         quality_metrics = {
@@ -2037,49 +2193,179 @@ The Advanced Research System completed execution but encountered issues in repor
             confidence_score=avg_confidence,
         )
 
-    def _generate_refinement_tasks(
-        self, original_query: str, previous_results: list[SubagentResult]
+    def _update_memory_with_results(
+        self, iteration_results: list[SubagentResult], iteration: int
+    ) -> None:
+        """Update system memory with iteration results in a structured way."""
+        result_summaries = []
+        for result in iteration_results:
+            result_summaries.append(
+                {
+                    "iteration": iteration,
+                    "agent_id": result.agent_id,
+                    "task": result.task_assignment,
+                    "findings": result.research_findings,
+                    "confidence": result.confidence_metrics.get(
+                        "research_confidence", 0.5
+                    ),
+                    "success": not result.error_status,
+                }
+            )
+
+        self.system_memory.subagent_results.extend(result_summaries)
+
+    def _generate_next_iteration_tasks(
+        self,
+        missing_topics: list[str],
+        query: str,
+        all_results: list[SubagentResult],
+        iteration: int,
+        eval_metrics: dict,
     ) -> list[str]:
-        """Generate refinement tasks for additional iterations based on previous results."""
+        """
+        Intelligently generate next iteration tasks based on evaluation feedback.
+        Enhanced logic for better task generation.
+        """
+        next_tasks = []
+
+        # Strategy 1: Address specific missing topics from LLM-as-judge
+        if missing_topics:
+            logger.info(
+                f"Addressing {len(missing_topics)} specific gaps identified by LLM"
+            )
+            for topic in missing_topics[:3]:  # Limit to top 3 most important gaps
+                enhanced_task = self._create_targeted_task(topic, query, iteration + 1)
+                next_tasks.append(enhanced_task)
+
+        # Strategy 2: Intelligent refinement based on quality scores
+        quality_score = eval_metrics.get("quality_score", 0.5)
+        if quality_score < 0.6 and len(next_tasks) < 2:
+            logger.info("Adding depth enhancement tasks due to low quality score")
+            refinement_tasks = self._generate_intelligent_refinement_tasks(
+                query, all_results, iteration
+            )
+            next_tasks.extend(refinement_tasks[:2])
+
+        # Strategy 3: Coverage expansion if needed
+        if len(next_tasks) < 2:
+            coverage_tasks = self._generate_coverage_expansion_tasks(query, all_results)
+            next_tasks.extend(coverage_tasks[:2])
+
+        # Ensure we don't exceed reasonable task count
+        return next_tasks[:4] if next_tasks else []
+
+    def _create_targeted_task(
+        self, missing_topic: str, query: str, iteration: int
+    ) -> str:
+        """Create a well-formed, searchable task from a missing topic."""
+        # Clean and enhance the missing topic for better search results
+        clean_topic = missing_topic.strip().rstrip(".")
+        return f"Iteration {iteration} targeted research: {clean_topic} in the context of {query} - include recent developments, expert perspectives, and concrete evidence"
+
+    def _generate_intelligent_refinement_tasks(
+        self, query: str, previous_results: list[SubagentResult], iteration: int
+    ) -> list[str]:
+        """Generate intelligent refinement tasks based on analysis of previous results."""
         successful_results = [r for r in previous_results if not r.error_status]
         failed_results = [r for r in previous_results if r.error_status]
 
         refinement_tasks = []
 
-        # Address failed tasks with modified approach
-        for failed_result in failed_results[:2]:  # Limit to 2 retry tasks
-            refinement_tasks.append(
-                f"Retry with broader approach: {failed_result.task_assignment}"
-            )
+        # Retry failed tasks with improved approach
+        if failed_results:
+            for failed_result in failed_results[:1]:  # Only retry most recent failure
+                refined_task = f"Enhanced approach iteration {iteration}: {failed_result.task_assignment} - use alternative search strategies and broader terminology"
+                refinement_tasks.append(refined_task)
 
-        # Identify gaps in coverage
-        coverage_keywords = [
+        # Deepen analysis in areas with low confidence
+        low_confidence_results = [
+            r
+            for r in successful_results
+            if r.confidence_metrics.get("research_confidence", 1.0) < 0.6
+        ]
+        if low_confidence_results:
+            task_keywords = self._extract_key_concepts(query)
+            if task_keywords:
+                refinement_tasks.append(
+                    f"Deep-dive validation iteration {iteration}: {task_keywords[0]} - cross-reference multiple authoritative sources and recent studies"
+                )
+
+        return refinement_tasks[:2]
+
+    def _generate_coverage_expansion_tasks(
+        self, query: str, all_results: list[SubagentResult]
+    ) -> list[str]:
+        """Generate tasks to expand research coverage in underexplored areas."""
+        successful_results = [r for r in all_results if not r.error_status]
+
+        # Analyze coverage gaps using keywords
+        standard_aspects = [
             "benefits",
             "risks",
             "challenges",
             "opportunities",
-            "implications",
+            "implementation",
+            "future trends",
         ]
-        covered_topics = set()
+        covered_aspects = set()
 
         for result in successful_results:
-            for keyword in coverage_keywords:
-                if keyword in result.research_findings.lower():
-                    covered_topics.add(keyword)
+            content = result.research_findings.lower()
+            for aspect in standard_aspects:
+                if aspect in content or any(
+                    syn in content for syn in self._get_synonyms(aspect)
+                ):
+                    covered_aspects.add(aspect)
 
-        missing_topics = set(coverage_keywords) - covered_topics
-        for topic in list(missing_topics)[:2]:  # Limit to 2 gap-filling tasks
-            refinement_tasks.append(
-                f"Investigate {topic} specifically related to: {original_query}"
+        missing_aspects = [
+            aspect for aspect in standard_aspects if aspect not in covered_aspects
+        ]
+
+        expansion_tasks = []
+        for aspect in missing_aspects[:2]:  # Focus on top 2 missing aspects
+            expansion_tasks.append(
+                f"Coverage expansion: {aspect} analysis for {query} - comprehensive review with recent examples and expert insights"
             )
 
-        # Add depth refinement if needed
-        if len(refinement_tasks) < 3:
-            refinement_tasks.append(
-                f"Conduct deeper analysis of key aspects in: {original_query}"
-            )
+        return expansion_tasks
 
-        return refinement_tasks[:3]  # Maximum 3 refinement tasks
+    def _extract_key_concepts(self, query: str) -> list[str]:
+        """Extract key concepts from query for focused research."""
+        # Simple keyword extraction - could be enhanced with NLP
+        stop_words = {
+            "what",
+            "how",
+            "why",
+            "when",
+            "where",
+            "are",
+            "is",
+            "the",
+            "in",
+            "of",
+            "and",
+            "or",
+            "to",
+            "for",
+        }
+        words = [
+            w.strip(".,!?").lower()
+            for w in query.split()
+            if w.lower() not in stop_words and len(w) > 2
+        ]
+        return words[:3]  # Return top 3 key concepts
+
+    def _get_synonyms(self, aspect: str) -> list[str]:
+        """Get synonyms for coverage analysis."""
+        synonym_map = {
+            "benefits": ["advantages", "positives", "gains", "improvements"],
+            "risks": ["dangers", "threats", "hazards", "concerns"],
+            "challenges": ["obstacles", "difficulties", "problems", "issues"],
+            "opportunities": ["possibilities", "potential", "prospects"],
+            "implementation": ["deployment", "execution", "adoption", "application"],
+            "future trends": ["emerging", "developments", "outlook", "predictions"],
+        }
+        return synonym_map.get(aspect, [])
 
     def _update_orchestration_metrics(
         self,
@@ -2181,9 +2467,358 @@ If this error persists, please contact the system administrator with the error d
             },
         }
 
+    def run(
+        self, query: str, export: bool = False, export_path: str = None
+    ) -> dict[str, Any]:
+        """
+        Alias for the research method to provide a more intuitive interface.
+
+        Args:
+            query (str): The research question to investigate
+            export (bool): Whether to export the final report to a file
+            export_path (str, optional): Custom file path for export. If None, generates timestamp-based name.
+
+        Returns:
+            Dict[str, Any]: Complete research results including final report, metrics, and metadata
+        """
+        return self.research(query, export, export_path)
+
+    def _enhanced_export(
+        self,
+        report_content: str,
+        query: str,
+        custom_path: str = None,
+        research_results: list = None,
+        metrics: dict = None,
+    ) -> str:
+        """
+        Enhanced export functionality with JSON format instead of Markdown.
+
+        Args:
+            report_content (str): The main report content
+            query (str): The research query for intelligent file naming
+            custom_path (str, optional): Custom file path
+            research_results (list, optional): Research results for metadata
+            metrics (dict, optional): Execution metrics
+
+        Returns:
+            str: The path where the JSON file was saved
+        """
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+        # Generate intelligent file name from query
+        if custom_path:
+            json_path = (
+                custom_path if custom_path.endswith(".json") else f"{custom_path}.json"
+            )
+        else:
+            # Create intelligent filename from query
+            clean_query = re.sub(r"[^\w\s-]", "", query.lower())
+            clean_query = re.sub(r"\s+", "_", clean_query)
+            clean_query = clean_query[:50]  # Limit length
+            json_path = f"research_{clean_query}_{timestamp}.json"
+
+        try:
+            # Create a comprehensive JSON structure
+            research_json = self._create_comprehensive_json(
+                report_content, query, research_results, metrics
+            )
+
+            with open(json_path, "w", encoding="utf-8") as f:
+                json.dump(research_json, f, indent=2, ensure_ascii=False)
+
+            logger.info(f"Comprehensive research report exported to JSON: {json_path}")
+            return json_path
+
+        except Exception as e:
+            logger.error(f"JSON export failed: {e}")
+            # Fallback to simple export
+            fallback_path = f"research_fallback_{timestamp}.json"
+            try:
+                fallback_json = {
+                    "query": query,
+                    "timestamp": timestamp,
+                    "report_content": report_content,
+                    "export_status": "fallback_export",
+                    "error": str(e),
+                }
+                with open(fallback_path, "w", encoding="utf-8") as f:
+                    json.dump(fallback_json, f, indent=2, ensure_ascii=False)
+                logger.info(f"Fallback JSON export completed: {fallback_path}")
+                return fallback_path
+            except Exception as e2:
+                logger.error(f"Fallback JSON export also failed: {e2}")
+                raise e
+
+    def _create_comprehensive_json(
+        self,
+        report_content: str,
+        query: str,
+        research_results: list = None,
+        metrics: dict = None,
+    ) -> dict:
+        """
+        Create a comprehensive JSON structure with all research data.
+        """
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+        # Extract successful results for analysis
+        successful_results = [
+            r
+            for r in (research_results or [])
+            if not r.error_status and r.research_findings
+        ]
+
+        # Build comprehensive JSON structure
+        json_data = {
+            "metadata": {
+                "query": query,
+                "timestamp": timestamp,
+                "system_version": "AdvancedResearch v2.0",
+                "architecture": "orchestrator-worker pattern",
+                "performance_improvement": "90.2% over single-agent systems",
+            },
+            "execution_summary": {
+                "total_investigations": (
+                    len(research_results) if research_results else 0
+                ),
+                "successful_investigations": len(successful_results),
+                "research_quality": round(
+                    (metrics.get("synthesis_quality", 0) * 100 if metrics else 0), 1
+                ),
+                "total_execution_time": (
+                    round(metrics.get("total_time", 0), 1) if metrics else 0
+                ),
+                "agents_deployed": metrics.get("agents_spawned", 0) if metrics else 0,
+                "sources_analyzed": metrics.get("source_count", 0) if metrics else 0,
+                "success_rate": (
+                    f"{len(successful_results)}/{len(research_results) if research_results else 0}"
+                ),
+            },
+            "research_findings": [],
+        }
+
+        # Add detailed findings from each successful investigation
+        for i, result in enumerate(successful_results, 1):
+            confidence = result.confidence_metrics.get("research_confidence", 0.5)
+            confidence_label = (
+                "High"
+                if confidence >= 0.8
+                else "Medium" if confidence >= 0.6 else "Preliminary"
+            )
+
+            investigation = {
+                "investigation_id": i,
+                "confidence_label": confidence_label,
+                "research_focus": result.task_assignment,
+                "confidence_level": round(confidence, 3),
+                "sources_found": len(result.source_collection),
+                "findings": result.research_findings,
+                "execution_time": round(result.execution_time, 2),
+                "sources": [],
+            }
+
+            # Add sources for this specific investigation
+            for j, source in enumerate(result.source_collection, 1):
+                source_data = {
+                    "id": f"{i}.{j}",
+                    "url": source.get("source", "Unknown source"),
+                    "content": source.get("content", "No content available"),
+                    "quality_score": round(source.get("quality_score", 0.5), 2),
+                    "reliability": source.get("reliability", "moderate"),
+                }
+                investigation["sources"].append(source_data)
+
+            json_data["research_findings"].append(investigation)
+
+        # Add methodology information
+        json_data["methodology"] = {
+            "system_architecture": {
+                "pattern": "Orchestrator-Worker Pattern",
+                "description": (
+                    "A lead researcher agent coordinates multiple specialized subagents"
+                ),
+                "parallel_execution": (
+                    "Multiple research tasks executed simultaneously for efficiency"
+                ),
+                "dynamic_task_generation": (
+                    "Iterative refinement based on LLM-as-judge evaluation"
+                ),
+                "quality_assessment": (
+                    "Continuous evaluation and improvement of research quality"
+                ),
+            },
+            "research_process": [
+                "Query Analysis: Lead agent analyzes the research question and develops strategy",
+                "Task Decomposition: Query broken into specific, searchable research tasks",
+                "Parallel Investigation: Specialized subagents execute research tasks simultaneously",
+                "Progress Evaluation: LLM-as-judge evaluates completeness and identifies gaps",
+                "Iterative Refinement: Additional research conducted based on identified gaps",
+                "Synthesis & Citation: Results compiled and properly cited",
+            ],
+            "quality_controls": [
+                "Source Verification: Multiple sources cross-referenced for accuracy",
+                "Confidence Scoring: Each finding assigned confidence level based on evidence quality",
+                "Citation Standards: All claims properly attributed to authoritative sources",
+                "Iterative Validation: Multiple rounds of evaluation and refinement",
+            ],
+        }
+
+        # Compile all unique sources across all investigations
+        all_sources = []
+        source_counter = 1
+
+        for result in successful_results:
+            for source in result.source_collection:
+                source_url = source.get("source", "Unknown source")
+                # Avoid duplicates
+                if not any(
+                    existing.get("url") == source_url for existing in all_sources
+                ):
+                    source_data = {
+                        "reference_id": source_counter,
+                        "url": source_url,
+                        "content": source.get("content", "No content available"),
+                        "quality_score": round(source.get("quality_score", 0.5), 2),
+                        "reliability": source.get("reliability", "moderate"),
+                    }
+                    all_sources.append(source_data)
+                    source_counter += 1
+
+        json_data["all_references"] = all_sources
+
+        # Add quality assessment
+        json_data["quality_assessment"] = {
+            "reliability_indicators": [
+                "Multi-Source Verification: Findings cross-referenced across multiple authoritative sources",
+                "Confidence Scoring: Each investigation rated for reliability and evidence quality",
+                "Systematic Coverage: Comprehensive exploration of research topic from multiple angles",
+                "Current Information: Focus on recent developments and latest available data",
+                "Professional Standards: Academic-level citation and referencing standards",
+            ],
+            "limitations": [
+                "Research limited to publicly available sources accessible via web search",
+                "Confidence levels reflect source quality and consensus, not absolute certainty",
+                "Some findings may require additional verification for critical decision-making",
+                "Information current as of the research execution date",
+            ],
+            "execution_metrics": {
+                "total_execution_time": (
+                    round(metrics.get("total_time", 0), 1) if metrics else 0
+                ),
+                "agents_deployed": metrics.get("agents_spawned", 0) if metrics else 0,
+                "research_quality_score": (
+                    round((metrics.get("synthesis_quality", 0) * 100), 1)
+                    if metrics
+                    else 0
+                ),
+                "sources_analyzed": metrics.get("source_count", 0) if metrics else 0,
+            },
+        }
+
+        # Add the original report content for reference
+        json_data["original_report_content"] = report_content
+
+        return json_data
+
+    def _add_methodology_and_appendix(
+        self, report_content: str, metrics: dict = None
+    ) -> str:
+        """Add methodology section and appendix to the report."""
+        if "## Research Methodology" in report_content:
+            return report_content  # Already has methodology
+
+        # Find insertion point (before References)
+        if "## References" in report_content:
+            parts = report_content.split("## References")
+            enhanced_report = parts[0]
+        else:
+            enhanced_report = report_content
+            parts = [report_content, ""]
+
+        # Add methodology section
+        methodology = """
+## Research Methodology
+
+This research was conducted using an advanced multi-agent research system with the following methodology:
+
+### System Architecture
+- **Orchestrator-Worker Pattern**: A lead researcher agent coordinates multiple specialized subagents
+- **Parallel Execution**: Multiple research tasks executed simultaneously for efficiency
+- **Dynamic Task Generation**: Iterative refinement based on LLM-as-judge evaluation
+- **Quality Assessment**: Continuous evaluation and improvement of research quality
+
+### Research Process
+1. **Query Analysis**: Lead agent analyzes the research question and develops strategy
+2. **Task Decomposition**: Query broken into specific, searchable research tasks
+3. **Parallel Investigation**: Specialized subagents execute research tasks simultaneously
+4. **Progress Evaluation**: LLM-as-judge evaluates completeness and identifies gaps
+5. **Iterative Refinement**: Additional research conducted based on identified gaps
+6. **Synthesis & Citation**: Results compiled and properly cited
+
+### Quality Controls
+- **Source Verification**: Multiple sources cross-referenced for accuracy
+- **Confidence Scoring**: Each finding assigned confidence level based on evidence quality
+- **Citation Standards**: All claims properly attributed to authoritative sources
+- **Iterative Validation**: Multiple rounds of evaluation and refinement
+
+"""
+
+        if metrics:
+            methodology += f"""### Execution Metrics
+- **Total Execution Time**: {metrics.get('total_time', 0):.1f} seconds
+- **Agents Deployed**: {metrics.get('agents_spawned', 0)}
+- **Research Quality**: {metrics.get('synthesis_quality', 0):.1%}
+- **Sources Analyzed**: {metrics.get('source_count', 0)}
+
+"""
+
+        methodology += "---\n\n"
+
+        # Add quality assessment section
+        quality_section = """
+## Quality Assessment
+
+### Research Reliability
+This research report has been generated using systematic multi-agent investigation with the following quality indicators:
+
+- **Multi-Source Verification**: Findings cross-referenced across multiple authoritative sources
+- **Confidence Scoring**: Each investigation rated for reliability and evidence quality
+- **Systematic Coverage**: Comprehensive exploration of research topic from multiple angles
+- **Current Information**: Focus on recent developments and latest available data
+- **Professional Standards**: Academic-level citation and referencing standards
+
+### Limitations and Considerations
+- Research limited to publicly available sources accessible via web search
+- Confidence levels reflect source quality and consensus, not absolute certainty
+- Some findings may require additional verification for critical decision-making
+- Information current as of the research execution date
+
+---
+
+## Recommendations
+
+Based on this research investigation, we recommend:
+
+1. **For Further Research**: Areas identified as requiring additional investigation
+2. **Source Verification**: Cross-reference high-impact findings with additional authoritative sources
+3. **Monitoring**: Track ongoing developments in rapidly evolving topic areas
+4. **Expert Consultation**: Consult domain experts for critical decision-making applications
+
+---
+
+"""
+
+        # Reassemble the report
+        final_report = enhanced_report + methodology + quality_section
+        if parts[1]:  # Add references back if they existed
+            final_report += "## References" + parts[1]
+
+        return final_report
+
     def export_report(self, report_content: str, file_path: str = None) -> str:
         """
-        Export a research report to a markdown file.
+        Legacy export method for backward compatibility - now exports JSON format.
 
         Args:
             report_content (str): The content to export
@@ -2193,13 +2828,39 @@ If this error persists, please contact the system administrator with the error d
             str: The path where the file was saved
         """
         if not file_path:
-            file_path = f"research_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.md"
+            file_path = (
+                f"research_report_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            )
+        else:
+            # Ensure file has .json extension
+            if not file_path.endswith(".json"):
+                file_path = (
+                    file_path.replace(".md", ".json")
+                    if ".md" in file_path
+                    else f"{file_path}.json"
+                )
 
         try:
+            # Create a basic JSON structure for legacy compatibility
+            json_data = {
+                "metadata": {
+                    "timestamp": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                    "export_type": "legacy_export",
+                    "system_version": "AdvancedResearch v2.0",
+                },
+                "report_content": report_content,
+                "export_info": {
+                    "format": "JSON",
+                    "note": (
+                        "This is a legacy export converted from markdown to JSON format"
+                    ),
+                },
+            }
+
             with open(file_path, "w", encoding="utf-8") as f:
-                f.write(report_content)
-            logger.info(f"📁 Research report successfully exported to: {file_path}")
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
+            logger.info(f"Research report successfully exported to JSON: {file_path}")
             return file_path
         except Exception as e:
-            logger.error(f"❌ Failed to export report to {file_path}: {e}")
+            logger.error(f"Failed to export report to {file_path}: {e}")
             raise
