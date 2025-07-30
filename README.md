@@ -201,206 +201,24 @@ EOF
 uv run research.py
 ```
 
-### Python API Usage
+## Example
+
 
 ```python
-from advancedresearch import AdvancedResearch
+from advanced_research import AdvancedResearch
 
-# Initialize the advanced research system
-research_system = AdvancedResearch(
-    model_name="claude-3-7-sonnet-20250219",  # High-performance model
-    max_iterations=3,
-    max_workers=5,
-    enable_parallel_execution=True,
-    memory_optimization=True
-)
+# Initialize the system
+research_system = AdvancedResearch(max_iterations=1)
 
-# Define your research goal
-research_query = (
-    "What are the benefits and risks of using AI in healthcare, "
-    "and what are the primary ethical considerations?"
-)
-
-# Run research with export functionality
+# Run research
 results = research_system.research(
-    research_query, 
-    export=True, 
-    export_path="healthcare_ai_report.md"
-)
-
-# Display comprehensive results
-print("\n" + "="*60)
-print("           ADVANCED RESEARCH SYSTEM RESULTS")
-print("="*60 + "\n")
-print(results["final_report"])
-
-# Access performance metrics
-print(f"\n📊 Performance Summary:")
-print(f"   Strategy: {results['research_strategy']['strategy_type']}")
-print(f"   Agents Spawned: {results['execution_metrics']['agents_spawned']}")
-print(f"   Total Time: {results['execution_metrics']['total_time']:.2f}s")
-print(f"   Sources Found: {results['source_analysis']['total_sources']}")
-print(f"   Synthesis Quality: {results['execution_metrics']['synthesis_quality']:.2f}")
-print(f"   Parallel Efficiency: {results['execution_metrics']['parallel_efficiency']:.1%}")
-
-# Export information
-if results['research_metadata']['exported_to']:
-    print(f"📄 Report exported to: {results['research_metadata']['exported_to']}")
-```
-
-
-
-## 🔧 Advanced Usage
-
-### Custom Configuration
-
-Easily customize research depth and execution strategy:
-
-```python
-from advancedresearch import AdvancedResearch
-
-# Quick overview research
-quick_system = AdvancedResearch(
-    max_iterations=1,
-    max_workers=3,
-    enable_parallel_execution=True
-)
-
-# Deep comprehensive investigation
-comprehensive_system = AdvancedResearch(
-    model_name="claude-3-7-sonnet-20250219",
-    max_iterations=5,
-    max_workers=8,
-    enable_parallel_execution=True,
-    memory_optimization=True
-)
-
-# Debug mode with sequential processing
-debug_system = AdvancedResearch(
-    max_iterations=2,
-    max_workers=3,
-    enable_parallel_execution=False  # Sequential for debugging
-)
-```
-
-### Export Options
-
-```python
-# Basic export with auto-generated filename
-results = research_system.research(query, export=True)
-
-# Custom export path
-results = research_system.research(
-    query, 
-    export=True, 
-    export_path="reports/ai_analysis_2024.md"
-)
-
-# Standalone export method
-export_path = research_system.export_report(
-    content, 
-    "analysis/custom_report.md"
-)
-
-# Batch processing with exports
-queries = [
-    "AI ethics in healthcare",
-    "Blockchain in finance",
-    "Quantum computing applications"
-]
-
-for query in queries:
-    results = research_system.research(query, export=True)
-    print(f"Exported: {results['research_metadata']['exported_to']}")
-```
-
-### Comprehensive Results Analysis
-
-Access detailed performance metrics and research data:
-
-```python
-results = research_system.research(research_query, export=True)
-
-# Research strategy analysis
-strategy = results["research_strategy"]
-print(f"Strategy Type: {strategy['strategy_type']}")
-print(f"Complexity Score: {strategy['complexity_score']}/10")
-print(f"Tasks Executed: {strategy['tasks_executed']}")
-
-# Execution performance metrics
-metrics = results["execution_metrics"]
-print(f"Total Execution Time: {metrics['total_time']:.2f}s")
-print(f"Agents Spawned: {metrics['agents_spawned']}")
-print(f"Parallel Efficiency: {metrics['parallel_efficiency']:.1%}")
-print(f"Synthesis Quality: {metrics['synthesis_quality']:.2f}")
-
-# Source quality analysis
-sources = results["source_analysis"]
-print(f"Total Sources: {sources['total_sources']}")
-print(f"Average Quality Score: {sources['average_quality']:.2f}")
-print(f"Citations Added: {sources['citation_count']}")
-
-# Individual subagent performance
-for result in results["subagent_results"]:
-    print(f"Agent {result['agent_id']}: {result['confidence']:.2f} confidence")
-    print(f"  Task: {result['task'][:50]}...")
-    print(f"  Iteration: {result.get('iteration', 'N/A')}")
-```
-
-## 🛠️ Real-World Examples
-
-### Healthcare AI Research
-
-```python
-from advancedresearch import AdvancedResearch
-
-research_system = AdvancedResearch(
-    model_name="claude-3-7-sonnet-20250219",
-    max_iterations=3,
-    max_workers=5
-)
-
-results = research_system.research(
-    "What are the current regulatory frameworks for AI in medical diagnostics?",
+    "What are the latest developments in quantum computing?",
     export=True,
-    export_path="ai_medical_regulations.md"
+    export_path="quantum_computing_report.md",
 )
 
-print(f"Research completed in {results['execution_metrics']['total_time']:.1f}s")
-print(f"Quality score: {results['execution_metrics']['synthesis_quality']:.2f}")
+print(results)
 ```
-
-### Financial Technology Analysis
-
-```python
-results = research_system.research(
-    "How is blockchain technology being integrated into traditional banking?",
-    export=True
-)
-
-# Analyze findings by confidence level
-high_confidence = [r for r in results["subagent_results"] if r['confidence'] >= 0.8]
-print(f"High-confidence findings: {len(high_confidence)}")
-```
-
-### Comparative Technology Assessment
-
-```python
-# Multiple related queries for comprehensive analysis
-topics = [
-    "Benefits of quantum computing in cryptography",
-    "Risks of quantum computing for current encryption",
-    "Timeline for quantum computing practical deployment"
-]
-
-all_results = []
-for topic in topics:
-    result = research_system.research(topic, export=True)
-    all_results.append(result)
-    print(f"Completed: {topic}")
-    print(f"Sources: {result['source_analysis']['total_sources']}")
-```
-
 
 ## 🤝 Contributing
 
