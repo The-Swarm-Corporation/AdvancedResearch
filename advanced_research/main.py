@@ -150,7 +150,8 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
     # payload["startCrawlDate"] = "2024-01-01T00:00:00.000Z"
 
     try:
-        logger.info(f"Executing Exa search for: {query[:50]}...")
+        logger.info(f"[SEARCH] Executing Exa search for: {query[:50]}...")
+
         response = requests.post(
             "https://api.exa.ai/search", json=payload, headers=headers, timeout=30
         )
@@ -225,7 +226,7 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
                 f"   Content: {content_preview}\n"
             )
 
-        logger.info(f"Exa search completed: {len(results)} results found")
+        logger.info(f"[SEARCH] Exa search completed: {len(results)} results found")
         return "\n".join(formatted_results)
 
     except requests.Timeout:
@@ -947,7 +948,9 @@ CRITICAL: Your entire response must be valid JSON starting with {{ and ending wi
         Implements the paper's worker execution pattern with advanced web search capabilities.
         """
         start_time = time.time()
-        logger.info(f"[{self.agent_id}] Executing task (priority={priority}): {task}")
+        logger.info(
+            f"[TASK] [{self.agent_id}] Executing task (priority={priority}): {task}"
+        )
 
         try:
             # Streamlined task execution prompt
@@ -1073,7 +1076,8 @@ CRITICAL: Your 'findings' field must contain actual research content, not templa
 
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"[{self.agent_id}] Task execution failed: {e}")
+
+            logger.error(f"[ERROR] [{self.agent_id}] Task execution failed: {e}")
             return self._create_error_result(task, str(e), execution_time)
 
     def _parse_subagent_response(self, response: str) -> tuple[dict | None, str | None]:
@@ -1279,7 +1283,7 @@ class CitationAgent:
             verbose=False,
         )
 
-        logger.info("CitationAgent initialized with quality assurance capabilities")
+        logger.info("[CITATION] CitationAgent initialized with quality assurance capabilities")
 
     def _get_citation_prompt(self) -> str:
         """Advanced citation agent prompt following paper specifications."""
@@ -1320,7 +1324,7 @@ No explanations outside the JSON structure."""
         Process citations with quality assessment and verification.
         Implements the paper's citation processing workflow.
         """
-        logger.info("CitationAgent processing citations and quality assurance...")
+        logger.info("[CITATION] CitationAgent processing citations and quality assurance...")
 
         # Prepare source information for citation processing
         source_info = ""
@@ -1387,19 +1391,19 @@ No explanations outside the JSON structure."""
 
             if error or not citation_data:
                 logger.warning(
-                    f"Citation processing failed: {error}, using basic citations"
+                    f"[CITATION] Citation processing failed: {error}, using basic citations"
                 )
                 return self._create_basic_citations(report, source_collection)
 
             citations = CitationOutput.model_validate(citation_data)
             logger.info(
-                f"Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
+                f"[CITATION] Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
             )
 
             return citations
 
         except Exception as e:
-            logger.error(f"Citation processing error: {e}")
+            logger.error(f"[CITATION] Citation processing error: {e}")
             return self._create_basic_citations(report, source_collection)
 
     def _parse_citation_response(self, response: str) -> tuple[dict | None, str | None]:
@@ -1432,14 +1436,14 @@ No explanations outside the JSON structure."""
     ) -> CitationOutput:
         """Create basic citations as fallback when agent processing fails."""
         logger.info(
-            f"Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
+            f"[CITATION] Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
         )
 
         # Ensure we have a report to work with
         if not report or not report.strip():
             report = "# Research Report\n\nNo comprehensive report was generated due to processing issues.\n"
             logger.warning(
-                "Empty report provided to citation agent, using fallback content"
+                "[WARN] Empty report provided to citation agent, using fallback content"
             )
 
         # Add inline citations to the report content
@@ -1448,7 +1452,7 @@ No explanations outside the JSON structure."""
 
         if not source_collection:
             cited_report += "No sources were collected during research.\n"
-            logger.warning("No sources available for citation")
+            logger.warning("[WARN] No sources available for citation")
         else:
             for i, source in enumerate(source_collection, 1):
                 url = source.get("source", f"Source_{i}")
@@ -1521,7 +1525,7 @@ No explanations outside the JSON structure."""
         )
 
         logger.info(
-            f"Basic citations created - Final report length: {len(result.cited_report)}"
+            f"[CITATION] Basic citations created - Final report length: {len(result.cited_report)}"
         )
         return result
 
@@ -1620,6 +1624,7 @@ class AdvancedResearch:
         self.system_memory = None
 
         logger.info(
+
             "AdvancedResearch System initialized with orchestrator-worker architecture"
         )
         logger.info(
@@ -1668,6 +1673,7 @@ class AdvancedResearch:
         try:
             # Phase 1: Query Analysis & Strategy Development (Lead Researcher)
             logger.info("Phase 1: Query Analysis & Strategy Development")
+
             strategy = self.lead_researcher.analyze_and_plan(query)
             self.system_memory.strategy_plan = strategy
 
@@ -1686,13 +1692,17 @@ class AdvancedResearch:
             # Streamlined dynamic iterative loop with enhanced LLM-as-judge evaluation
             while iteration < self.max_iterations and not research_is_complete:
                 iteration += 1
-                logger.info(f"=== Iteration {iteration}/{self.max_iterations} ===")
 
+                logger.info(
+                    f"[ITERATION] === Dynamic Iteration {iteration}/{self.max_iterations} ==="
+                )
+                
                 # Validate and prepare tasks for execution
                 current_tasks = strategy.subtasks
                 if not current_tasks:
                     logger.warning(
-                        f"No tasks available for iteration {iteration}. Terminating."
+
+                        f"[WARN] No tasks available for iteration {iteration}. Breaking."
                     )
                     break
 
@@ -1705,7 +1715,6 @@ class AdvancedResearch:
                 all_results.extend(iteration_results)
                 self._update_memory_with_results(iteration_results, iteration)
 
-                # Generate intermediate synthesis for evaluation
                 synthesis_result = self._synthesize_research_results(query, all_results)
                 intermediate_report = synthesis_result.synthesized_report
                 self.system_memory.synthesis_history.append(intermediate_report)
@@ -1760,7 +1769,7 @@ class AdvancedResearch:
                 if result.source_collection:
                     all_sources.extend(result.source_collection)
 
-            logger.info(f"Collected {len(all_sources)} total sources from subagents")
+            logger.info(f"[SOURCES] Collected {len(all_sources)} total sources from subagents")
 
             # Remove duplicates and process citations
             unique_sources = {
@@ -1769,7 +1778,7 @@ class AdvancedResearch:
             unique_sources_list = list(unique_sources)
 
             logger.info(
-                f"Processing citations with {len(unique_sources_list)} unique sources"
+                f"[CITATIONS] Processing citations with {len(unique_sources_list)} unique sources"
             )
 
             # Ensure we have a report to process
@@ -1778,7 +1787,8 @@ class AdvancedResearch:
                 or not synthesis_result.synthesized_report.strip()
             ):
                 logger.error(
-                    "Synthesis result is empty! Creating emergency fallback report."
+
+                    "[ERROR] Synthesis result is empty! Creating emergency fallback report."
                 )
                 synthesis_result.synthesized_report = f"# Research Report: {query}\n\nThe research system encountered issues during synthesis. Here are the available findings:\n\n"
 
@@ -1853,7 +1863,8 @@ The Advanced Research System completed execution but encountered issues in repor
                 final_report_content += "\n## System Information\nThis emergency report was generated due to processing issues in the citation system.\n"
 
             logger.info(
-                f"Final report prepared - Length: {len(final_report_content)} characters"
+
+                f"[REPORT] Final report prepared - Length: {len(final_report_content)} characters"
             )
 
             # Enhanced export functionality
@@ -1913,7 +1924,8 @@ The Advanced Research System completed execution but encountered issues in repor
             }
 
         except Exception as e:
-            logger.exception("Critical error in research execution")
+
+            logger.exception("[ERROR] Critical error in research execution")
             return self._create_error_response(query, str(e), time.time() - start_time)
 
     def _execute_parallel_research(
@@ -1960,14 +1972,18 @@ The Advanced Research System completed execution but encountered issues in repor
                     results.append(result)
 
                     agent_id = future_to_agent[future]
+              
                     status = "SUCCESS" if not result.error_status else "FAILED"
+
                     logger.info(
                         f"{status} [{agent_id}] completed in {result.execution_time:.1f}s"
                     )
 
                 except Exception as e:
                     agent_id = future_to_agent[future]
-                    logger.error(f"[{agent_id}] execution failed: {e}")
+
+                    logger.error(f"[ERROR] [{agent_id}] execution failed: {e}")
+              
                     # Create error result for failed agent
                     error_result = SubagentResult(
                         agent_id=agent_id,
@@ -1990,7 +2006,8 @@ The Advanced Research System completed execution but encountered issues in repor
         self, tasks: list[str], strategy_type: str, iteration: int
     ) -> list[SubagentResult]:
         """Fallback sequential execution when parallel processing is disabled."""
-        logger.info(f"Executing {len(tasks)} tasks sequentially")
+
+        logger.info(f"[SEQUENTIAL] Executing {len(tasks)} tasks sequentially")
 
         results = []
         for i, task in enumerate(tasks):
@@ -2914,7 +2931,7 @@ Based on this research investigation, we recommend:
             }
 
             with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, indent=2, ensure_ascii=False)
+              json.dump(json_data, f, indent=2, ensure_ascii=False)
             logger.info(f"Research report successfully exported to JSON: {file_path}")
             return file_path
         except Exception as e:
