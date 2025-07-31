@@ -134,7 +134,7 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
     }
 
     try:
-        logger.info(f"🔍 Executing Exa search for: {query[:50]}...")
+        logger.info(f"[SEARCH] Executing Exa search for: {query[:50]}...")
         response = requests.post(
             "https://api.exa.ai/search", json=payload, headers=headers, timeout=30
         )
@@ -168,14 +168,14 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
 
             # Enhanced quality indicators
             domain_quality = (
-                "🔥"
+                "[ACADEMIC]"
                 if any(
                     domain in url.lower()
                     for domain in [".edu", ".gov", ".org", "pubmed", "scholar"]
                 )
-                else "📊" if ".com" in url.lower() else "📄"
+                else "[COMMERCIAL]" if ".com" in url.lower() else "[GENERAL]"
             )
-            relevance = "⭐⭐⭐" if score > 0.8 else "⭐⭐" if score > 0.6 else "⭐"
+            relevance = "[HIGH]" if score > 0.8 else "[MED]" if score > 0.6 else "[LOW]"
 
             formatted_results.append(
                 f"{i}. {domain_quality} {relevance} {title}\n"
@@ -184,7 +184,7 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
                 f"   Content: {content_preview[:300]}...\n"
             )
 
-        logger.info(f"✅ Exa search completed: {len(results)} results found")
+        logger.info(f"[SEARCH] Exa search completed: {len(results)} results found")
         return "\n".join(formatted_results)
 
     except requests.Timeout:
@@ -802,7 +802,7 @@ class ResearchSubagent:
         )
 
         logger.info(
-            f"🤖 ResearchSubagent {agent_id} initialized with {strategy_context} strategy"
+            f"[AGENT] ResearchSubagent {agent_id} initialized with {strategy_context} strategy"
         )
 
     def _get_subagent_prompt(self) -> str:
@@ -925,7 +925,7 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
         """
         start_time = time.time()
         logger.info(
-            f"🔄 [{self.agent_id}] Executing task (priority={priority}): {task}"
+            f"[TASK] [{self.agent_id}] Executing task (priority={priority}): {task}"
         )
 
         try:
@@ -1034,13 +1034,13 @@ RESPOND WITH VALID JSON ONLY - NO OTHER TEXT."""
             )
 
             logger.info(
-                f"✅ [{self.agent_id}] Task completed (confidence={findings.confidence_level:.2f}, time={execution_time:.1f}s)"
+                f"[COMPLETE] [{self.agent_id}] Task completed (confidence={findings.confidence_level:.2f}, time={execution_time:.1f}s)"
             )
             return result
 
         except Exception as e:
             execution_time = time.time() - start_time
-            logger.error(f"❌ [{self.agent_id}] Task execution failed: {e}")
+            logger.error(f"[ERROR] [{self.agent_id}] Task execution failed: {e}")
             return self._create_error_result(task, str(e), execution_time)
 
     def _parse_subagent_response(self, response: str) -> tuple[dict | None, str | None]:
@@ -1224,7 +1224,7 @@ class CitationAgent:
             verbose=False,
         )
 
-        logger.info("📚 CitationAgent initialized with quality assurance capabilities")
+        logger.info("[CITATION] CitationAgent initialized with quality assurance capabilities")
 
     def _get_citation_prompt(self) -> str:
         """Advanced citation agent prompt following paper specifications."""
@@ -1265,7 +1265,7 @@ No explanations outside the JSON structure."""
         Process citations with quality assessment and verification.
         Implements the paper's citation processing workflow.
         """
-        logger.info("📚 CitationAgent processing citations and quality assurance...")
+        logger.info("[CITATION] CitationAgent processing citations and quality assurance...")
 
         # Prepare source information for citation processing
         source_info = ""
@@ -1332,19 +1332,19 @@ No explanations outside the JSON structure."""
 
             if error or not citation_data:
                 logger.warning(
-                    f"Citation processing failed: {error}, using basic citations"
+                    f"[CITATION] Citation processing failed: {error}, using basic citations"
                 )
                 return self._create_basic_citations(report, source_collection)
 
             citations = CitationOutput.model_validate(citation_data)
             logger.info(
-                f"📚 Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
+                f"[CITATION] Citations processed: {citations.citation_count} citations, quality={citations.reference_quality:.2f}"
             )
 
             return citations
 
         except Exception as e:
-            logger.error(f"Citation processing error: {e}")
+            logger.error(f"[CITATION] Citation processing error: {e}")
             return self._create_basic_citations(report, source_collection)
 
     def _parse_citation_response(self, response: str) -> tuple[dict | None, str | None]:
@@ -1377,21 +1377,21 @@ No explanations outside the JSON structure."""
     ) -> CitationOutput:
         """Create basic citations as fallback when agent processing fails."""
         logger.info(
-            f"📚 Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
+            f"[CITATION] Creating basic citations - Report length: {len(report)}, Sources: {len(source_collection)}"
         )
 
         # Ensure we have a report to work with
         if not report or not report.strip():
             report = "# Research Report\n\nNo comprehensive report was generated due to processing issues.\n"
             logger.warning(
-                "⚠️ Empty report provided to citation agent, using fallback content"
+                "[WARN] Empty report provided to citation agent, using fallback content"
             )
 
         cited_report = report.strip() + "\n\n## References\n\n"
 
         if not source_collection:
             cited_report += "No sources were collected during research.\n"
-            logger.warning("⚠️ No sources available for citation")
+            logger.warning("[WARN] No sources available for citation")
         else:
             for i, source in enumerate(source_collection, 1):
                 url = source.get("source", f"Source_{i}")
@@ -1453,7 +1453,7 @@ No explanations outside the JSON structure."""
         )
 
         logger.info(
-            f"✅ Basic citations created - Final report length: {len(result.cited_report)}"
+            f"[CITATION] Basic citations created - Final report length: {len(result.cited_report)}"
         )
         return result
 
@@ -1499,10 +1499,10 @@ class AdvancedResearch:
         self.system_memory = None
 
         logger.info(
-            "🚀 AdvancedResearch System initialized with orchestrator-worker architecture"
+            "[INIT] AdvancedResearch System initialized with orchestrator-worker architecture"
         )
         logger.info(
-            f"📊 Configuration: {max_workers} workers, {max_iterations} iterations, parallel={enable_parallel_execution}"
+            f"[CONFIG] Configuration: {max_workers} workers, {max_iterations} iterations, parallel={enable_parallel_execution}"
         )
 
     def research(
@@ -1525,8 +1525,8 @@ class AdvancedResearch:
         Returns:
             Dict[str, Any]: Complete research results including final report, metrics, and metadata
         """
-        logger.info("🎯 === ADVANCED RESEARCH SYSTEM EXECUTION START ===")
-        logger.info(f"📝 Research Query: '{query}'")
+        logger.info("[START] === ADVANCED RESEARCH SYSTEM EXECUTION START ===")
+        logger.info(f"[QUERY] Research Query: '{query}'")
 
         # Initialize system memory and conversation state
         self.system_memory = AgentMemory(
@@ -1538,17 +1538,17 @@ class AdvancedResearch:
 
         try:
             # Phase 1: Query Analysis & Strategy Development (Lead Researcher)
-            logger.info("🧠 Phase 1: Query Analysis & Strategy Development")
+            logger.info("[PHASE1] Query Analysis & Strategy Development")
             strategy = self.lead_researcher.analyze_and_plan(query)
             self.system_memory.strategy_plan = strategy
 
             logger.info(
-                f"📋 Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
+                f"[STRATEGY] Strategy: {strategy.strategy_type}, Complexity: {strategy.complexity_score}/10"
             )
-            logger.info(f"🎯 Subtasks: {len(strategy.subtasks)} tasks planned")
+            logger.info(f"[TASKS] Subtasks: {len(strategy.subtasks)} tasks planned")
 
             # Phase 2: Dynamic Subagent Spawning & Parallel Execution
-            logger.info("🤖 Phase 2: Dynamic Subagent Spawning & Parallel Execution")
+            logger.info("[PHASE2] Dynamic Subagent Spawning & Parallel Execution")
 
             all_results = []
             research_is_complete = False
@@ -1558,7 +1558,7 @@ class AdvancedResearch:
             while iteration < self.max_iterations and not research_is_complete:
                 iteration += 1
                 logger.info(
-                    f"🔄 === Dynamic Iteration {iteration}/{self.max_iterations} ==="
+                    f"[ITERATION] === Dynamic Iteration {iteration}/{self.max_iterations} ==="
                 )
 
                 # Determine current tasks (initial strategy or refined tasks)
@@ -1567,7 +1567,7 @@ class AdvancedResearch:
                 )
                 if not current_tasks:
                     logger.warning(
-                        f"No tasks available for iteration {iteration}. Breaking."
+                        f"[WARN] No tasks available for iteration {iteration}. Breaking."
                     )
                     break
 
@@ -1594,7 +1594,7 @@ class AdvancedResearch:
 
                 # Synthesize intermediate results for evaluation
                 logger.info(
-                    "🔬 Synthesizing intermediate results for progress evaluation..."
+                    "[SYNTHESIS] Synthesizing intermediate results for progress evaluation..."
                 )
                 synthesis_result = self._synthesize_research_results(query, all_results)
                 intermediate_report = synthesis_result.synthesized_report
@@ -1603,13 +1603,13 @@ class AdvancedResearch:
                 self.system_memory.synthesis_history.append(intermediate_report)
 
                 # Evaluate progress using LLM-as-judge
-                logger.info("⚖️ Evaluating research progress with LLM-as-judge...")
+                logger.info("[EVAL] Evaluating research progress with LLM-as-judge...")
                 is_complete, missing_topics, reasoning = (
                     self.lead_researcher._evaluate_progress(intermediate_report, query)
                 )
 
                 # Log evaluation results
-                logger.info(f"📊 Iteration {iteration} LLM-as-Judge Evaluation:")
+                logger.info(f"[EVAL] Iteration {iteration} LLM-as-Judge Evaluation:")
                 logger.info(f"   Research Complete: {is_complete}")
                 logger.info(
                     f"   Reasoning: {reasoning[:100]}..."
@@ -1619,22 +1619,22 @@ class AdvancedResearch:
 
                 if is_complete:
                     logger.info(
-                        "✅ Research deemed complete by LLM-as-judge - terminating loop"
+                        "[COMPLETE] Research deemed complete by LLM-as-judge - terminating loop"
                     )
                     research_is_complete = True
                     break
                 elif iteration >= self.max_iterations:
-                    logger.info("⏱️ Maximum iterations reached - concluding research")
+                    logger.info("[TIMEOUT] Maximum iterations reached - concluding research")
                     break
                 else:
                     # Generate new targeted sub-tasks based on LLM evaluation feedback
                     logger.info(
-                        "🔄 Research incomplete - generating next iteration tasks..."
+                        "[REFINE] Research incomplete - generating next iteration tasks..."
                     )
 
                     if missing_topics and len(missing_topics) > 0:
                         logger.info(
-                            f"🎯 Generating targeted tasks for {len(missing_topics)} missing topics identified by LLM-as-judge..."
+                            f"[TASKS] Generating targeted tasks for {len(missing_topics)} missing topics identified by LLM-as-judge..."
                         )
                         new_tasks = []
                         for i, topic in enumerate(
@@ -1647,12 +1647,12 @@ class AdvancedResearch:
 
                         strategy.subtasks = new_tasks
                         logger.info(
-                            f"📝 Generated {len(new_tasks)} targeted tasks based on LLM-as-judge feedback"
+                            f"[TASKS] Generated {len(new_tasks)} targeted tasks based on LLM-as-judge feedback"
                         )
                     else:
                         # Fallback to refinement tasks if no specific missing topics identified
                         logger.info(
-                            "🔄 No specific missing topics identified - generating refinement tasks..."
+                            "[REFINE] No specific missing topics identified - generating refinement tasks..."
                         )
                         refinement_tasks = self._generate_refinement_tasks(
                             query, all_results
@@ -1660,35 +1660,35 @@ class AdvancedResearch:
                         if refinement_tasks and len(refinement_tasks) > 0:
                             strategy.subtasks = refinement_tasks
                             logger.info(
-                                f"🔄 Generated {len(refinement_tasks)} refinement tasks as fallback approach"
+                                f"[REFINE] Generated {len(refinement_tasks)} refinement tasks as fallback approach"
                             )
                         else:
                             logger.warning(
-                                "❌ Unable to generate additional research tasks - research may be at natural completion point"
+                                "[ERROR] Unable to generate additional research tasks - research may be at natural completion point"
                             )
                             logger.info(
-                                "🔚 Terminating iterative loop - proceeding to final synthesis"
+                                "[END] Terminating iterative loop - proceeding to final synthesis"
                             )
                             break
 
                     # Log next iteration plan
                     logger.info(
-                        f"📋 Next iteration will focus on {len(strategy.subtasks)} new research angles"
+                        f"[PLAN] Next iteration will focus on {len(strategy.subtasks)} new research angles"
                     )
 
             # Phase 3: Result Synthesis (Lead Researcher Coordination)
-            logger.info("🔬 Phase 3: Advanced Result Synthesis")
+            logger.info("[PHASE3] Advanced Result Synthesis")
             synthesis_result = self._synthesize_research_results(query, all_results)
 
             logger.info(
-                f"📝 Synthesis completed - Report length: {len(synthesis_result.synthesized_report)} chars"
+                f"[SYNTHESIS] Synthesis completed - Report length: {len(synthesis_result.synthesized_report)} chars"
             )
             logger.info(
-                f"✅ Synthesis quality score: {synthesis_result.confidence_score:.2f}"
+                f"[QUALITY] Synthesis quality score: {synthesis_result.confidence_score:.2f}"
             )
 
             # Phase 4: Citation Processing & Quality Assurance
-            logger.info("📚 Phase 4: Citation Processing & Quality Assurance")
+            logger.info("[PHASE4] Citation Processing & Quality Assurance")
 
             # Collect all sources from subagent results
             all_sources = []
@@ -1696,7 +1696,7 @@ class AdvancedResearch:
                 if result.source_collection:
                     all_sources.extend(result.source_collection)
 
-            logger.info(f"🔗 Collected {len(all_sources)} total sources from subagents")
+            logger.info(f"[SOURCES] Collected {len(all_sources)} total sources from subagents")
 
             # Remove duplicates and process citations
             unique_sources = {
@@ -1705,7 +1705,7 @@ class AdvancedResearch:
             unique_sources_list = list(unique_sources)
 
             logger.info(
-                f"📚 Processing citations with {len(unique_sources_list)} unique sources"
+                f"[CITATIONS] Processing citations with {len(unique_sources_list)} unique sources"
             )
 
             # Ensure we have a report to process
@@ -1714,7 +1714,7 @@ class AdvancedResearch:
                 or not synthesis_result.synthesized_report.strip()
             ):
                 logger.error(
-                    "❌ Synthesis result is empty! Creating emergency fallback report."
+                    "[ERROR] Synthesis result is empty! Creating emergency fallback report."
                 )
                 synthesis_result.synthesized_report = f"# Research Report: {query}\n\nThe research system encountered issues during synthesis. Here are the available findings:\n\n"
 
@@ -1737,27 +1737,27 @@ class AdvancedResearch:
             )
 
             logger.info(
-                f"📚 Citation processing completed - Final report length: {len(citation_output.cited_report)} chars"
+                f"[CITATIONS] Citation processing completed - Final report length: {len(citation_output.cited_report)} chars"
             )
 
             # Calculate final metrics
             total_time = time.time() - start_time
             self._update_orchestration_metrics(all_results, total_time, citation_output)
 
-            logger.info("🎉 === ADVANCED RESEARCH SYSTEM EXECUTION COMPLETE ===")
-            logger.info(f"⚡ Total execution time: {total_time:.2f}s")
+            logger.info("[COMPLETE] === ADVANCED RESEARCH SYSTEM EXECUTION COMPLETE ===")
+            logger.info(f"[TIME] Total execution time: {total_time:.2f}s")
             logger.info(
-                f"🤖 Agents spawned: {self.orchestration_metrics.total_agents_spawned}"
+                f"[AGENTS] Agents spawned: {self.orchestration_metrics.total_agents_spawned}"
             )
             logger.info(
-                f"📊 Synthesis quality: {self.orchestration_metrics.synthesis_quality_score:.2f}"
+                f"[QUALITY] Synthesis quality: {self.orchestration_metrics.synthesis_quality_score:.2f}"
             )
 
             # Final safety check for the report content
             final_report_content = citation_output.cited_report
             if not final_report_content or not final_report_content.strip():
                 logger.error(
-                    "🚨 CRITICAL: Final report is empty after all processing! Creating emergency report."
+                    "[CRITICAL] Final report is empty after all processing! Creating emergency report."
                 )
                 final_report_content = f"""# Emergency Research Report: {query}
 
@@ -1789,7 +1789,7 @@ The Advanced Research System completed execution but encountered issues in repor
                 final_report_content += "\n## System Information\nThis emergency report was generated due to processing issues in the citation system.\n"
 
             logger.info(
-                f"📄 Final report prepared - Length: {len(final_report_content)} characters"
+                f"[REPORT] Final report prepared - Length: {len(final_report_content)} characters"
             )
 
             # Export functionality
@@ -1802,9 +1802,9 @@ The Advanced Research System completed execution but encountered issues in repor
                 try:
                     with open(export_file_path, "w", encoding="utf-8") as f:
                         f.write(final_report_content)
-                    logger.info(f"📁 Research report exported to: {export_file_path}")
+                    logger.info(f"[EXPORT] Research report successfully exported to: {export_file_path}")
                 except Exception as e:
-                    logger.error(f"❌ Failed to export report: {e}")
+                    logger.error(f"[ERROR] Failed to export report: {e}")
                     export_file_path = None
 
             return {
@@ -1844,7 +1844,7 @@ The Advanced Research System completed execution but encountered issues in repor
             }
 
         except Exception as e:
-            logger.exception("❌ Critical error in research execution")
+            logger.exception("[ERROR] Critical error in research execution")
             return self._create_error_response(query, str(e), time.time() - start_time)
 
     def _execute_parallel_research(
@@ -1858,7 +1858,7 @@ The Advanced Research System completed execution but encountered issues in repor
             return self._execute_sequential_research(tasks, strategy_type, iteration)
 
         logger.info(
-            f"⚡ Executing {len(tasks)} tasks in parallel with {min(len(tasks), self.max_workers)} subagents"
+            f"[PARALLEL] Executing {len(tasks)} tasks in parallel with {min(len(tasks), self.max_workers)} subagents"
         )
 
         results = []
@@ -1885,14 +1885,14 @@ The Advanced Research System completed execution but encountered issues in repor
                     results.append(result)
 
                     agent_id = future_to_agent[future]
-                    status = "✅" if not result.error_status else "❌"
+                    status = "[OK]" if not result.error_status else "[ERROR]"
                     logger.info(
                         f"{status} [{agent_id}] completed in {result.execution_time:.1f}s"
                     )
 
                 except Exception as e:
                     agent_id = future_to_agent[future]
-                    logger.error(f"❌ [{agent_id}] execution failed: {e}")
+                    logger.error(f"[ERROR] [{agent_id}] execution failed: {e}")
                     # Create error result for failed agent
                     error_result = SubagentResult(
                         agent_id=agent_id,
@@ -1915,7 +1915,7 @@ The Advanced Research System completed execution but encountered issues in repor
         self, tasks: list[str], strategy_type: str, iteration: int
     ) -> list[SubagentResult]:
         """Fallback sequential execution when parallel processing is disabled."""
-        logger.info(f"🔄 Executing {len(tasks)} tasks sequentially")
+        logger.info(f"[SEQUENTIAL] Executing {len(tasks)} tasks sequentially")
 
         results = []
         for i, task in enumerate(tasks):
@@ -1928,7 +1928,7 @@ The Advanced Research System completed execution but encountered issues in repor
 
             self.orchestration_metrics.total_agents_spawned += 1
 
-            status = "✅" if not result.error_status else "❌"
+            status = "[OK]" if not result.error_status else "[ERROR]"
             logger.info(
                 f"{status} [{agent_id}] completed in {result.execution_time:.1f}s"
             )
@@ -1981,7 +1981,7 @@ The Advanced Research System completed execution but encountered issues in repor
         for i, result in enumerate(successful_results, 1):
             confidence = result.confidence_metrics.get("research_confidence", 0.5)
             confidence_indicator = (
-                "🔥" if confidence >= 0.8 else "📊" if confidence >= 0.6 else "📝"
+                "[HIGH]" if confidence >= 0.8 else "[MED]" if confidence >= 0.6 else "[LOW]"
             )
 
             synthesis_content += (
@@ -2198,8 +2198,8 @@ If this error persists, please contact the system administrator with the error d
         try:
             with open(file_path, "w", encoding="utf-8") as f:
                 f.write(report_content)
-            logger.info(f"📁 Research report successfully exported to: {file_path}")
+            logger.info(f"[EXPORT] Research report successfully exported to: {file_path}")
             return file_path
         except Exception as e:
-            logger.error(f"❌ Failed to export report to {file_path}: {e}")
+            logger.error(f"[ERROR] Failed to export report to {file_path}: {e}")
             raise
