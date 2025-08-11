@@ -9,12 +9,12 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+import httpx
 import requests
+import yaml
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
-
-# Swarms framework for multi-agent coordination
 from swarms import Agent, Conversation
 
 # Load environment variables from .env file
@@ -33,6 +33,81 @@ class SourceInfo(BaseModel):
     reliability: str = Field(
         default="moderate", description="Source reliability rating"
     )
+
+
+def format_dict_to_string(
+    data: dict, indent: str = "", max_key_width: int | None = None
+) -> str:
+    """
+    Convert a dictionary into a nicely formatted string with key-value pairs.
+
+    Args:
+        data: Dictionary to format
+        indent: String to prepend to each line for indentation
+        max_key_width: Optional maximum width for key alignment. If None, auto-calculated.
+
+    Returns:
+        Formatted string with each key-value pair on a new line with double spacing
+
+    Example:
+        >>> data = {"name": "John", "age": 30, "city": "New York"}
+        >>> print(format_dict_to_string(data))
+        name: John
+
+
+        age : 30
+
+
+        city: New York
+    """
+    if not data:
+        return ""
+
+    # Handle nested dictionaries and lists
+    def format_value(value, nested_indent=""):
+        if isinstance(value, dict):
+            if not value:
+                return "{}"
+            nested_str = format_dict_to_string(value, nested_indent + "  ")
+            return f"\n{nested_str}"
+        elif isinstance(value, list):
+            if not value:
+                return "[]"
+            formatted_items = []
+            for item in value:
+                if isinstance(item, dict):
+                    item_str = format_dict_to_string(item, nested_indent + "  ")
+                    formatted_items.append(f"\n{nested_indent}  - {item_str}")
+                else:
+                    # Remove quotes from string items in lists
+                    item_display = item if not isinstance(item, str) else item
+                    formatted_items.append(f"\n{nested_indent}  - {item_display}")
+            return "".join(formatted_items)
+        elif isinstance(value, str):
+            # Remove quotes from string values
+            return value
+        else:
+            return str(value)
+
+    # Calculate the maximum key width for alignment
+    if max_key_width is None:
+        max_key_width = max(len(str(key)) for key in data.keys()) if data else 0
+
+    # Format each key-value pair
+    formatted_lines = []
+    for key, value in data.items():
+        key_str = str(key).ljust(max_key_width)
+        formatted_value = format_value(value, indent)
+
+        if "\n" in formatted_value:
+            # Multi-line value (nested dict/list)
+            formatted_lines.append(f"{indent}{key_str}:{formatted_value}")
+        else:
+            # Single-line value
+            formatted_lines.append(f"{indent}{key_str}: {formatted_value}")
+
+    # Join with double line breaks for spacing
+    return "\n\n\n".join(formatted_lines)
 
 
 class SubagentFindings(BaseModel):
@@ -96,7 +171,9 @@ class CitationOutput(BaseModel):
 
 
 # --- Enhanced Tool Definition (Exa Search Integration) ---
-def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
+def exa_search(
+    query: str, num_results: int = 5, max_characters: int = 1000, **kwargs: Any
+) -> str:
     """
     Advanced web search using Exa.ai API with corrected request format.
     Designed for parallel execution by multiple subagents with enhanced search capabilities.
@@ -109,9 +186,6 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
         str: Formatted search results with quality indicators
     """
     api_key = os.getenv("EXA_API_KEY")
-    if not api_key:
-        logger.warning("EXA_API_KEY not found - using mock search results")
-        return f"Mock search results for: {query}\n1. Example Source: https://example.com\n   Content: Mock research data for {query[:50]}..."
 
     headers = {
         "x-api-key": api_key,
@@ -122,7 +196,7 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
     payload = {
         "query": query,
         "type": "auto",
-        "numResults": min(num_results, 10),
+        "numResults": num_results,
         "contents": {
             "text": True,
             "summary": {
@@ -140,104 +214,28 @@ def exa_search(query: str, num_results: int = 5, **kwargs: Any) -> str:
                     },
                 }
             },
-            "context": {"maxCharacters": 1000},
+            "context": {"maxCharacters": max_characters},
         },
     }
-
-    # Add optional date filters if needed for recent content
-    # Uncomment and modify these lines if you want to filter by date
-    # payload["startPublishedDate"] = "2024-01-01T00:00:00.000Z"
-    # payload["startCrawlDate"] = "2024-01-01T00:00:00.000Z"
 
     try:
         logger.info(f"[SEARCH] Executing Exa search for: {query[:50]}...")
 
-        response = requests.post(
+        # response = http.post(
+        #     "https://api.exa.ai/search", json=payload, headers=headers, timeout=30
+        # )
+        response = httpx.post(
             "https://api.exa.ai/search", json=payload, headers=headers, timeout=30
         )
-
-        # Log response status for debugging
-        logger.debug(f"Exa API response status: {response.status_code}")
-
-        if response.status_code == 400:
-            error_detail = response.text
-            logger.error(f"Exa API 400 error: {error_detail}")
-            return f"Search API Error (400): {error_detail[:200]}... Please check query format."
 
         response.raise_for_status()
         json_data = response.json()
 
-        if "error" in json_data:
-            logger.error(f"Exa API returned error: {json_data['error']}")
-            return f"Search Error: {json_data['error']}"
+        return json.dumps(json_data, indent=4)
 
-        results = json_data.get("results", [])
-        if not results:
-            logger.warning(f"No results found for query: {query}")
-            return f"No results found for query: {query}. Try rephrasing or using different keywords."
-
-        formatted_results = []
-        for i, result in enumerate(results, 1):
-            title = result.get("title", "No Title")
-            url = result.get("url", "No URL")
-            score = result.get("score", 0.0)
-
-            # Handle new response format with text and summary content
-            content_preview = ""
-            if "text" in result:
-                content_preview = (
-                    result["text"][:300] + "..."
-                    if len(result["text"]) > 300
-                    else result["text"]
-                )
-            elif "summary" in result and result["summary"]:
-                # Extract the answer from the summary schema
-                summary_data = result["summary"]
-                if isinstance(summary_data, dict) and "answer" in summary_data:
-                    content_preview = (
-                        summary_data["answer"][:300] + "..."
-                        if len(summary_data["answer"]) > 300
-                        else summary_data["answer"]
-                    )
-                else:
-                    content_preview = (
-                        str(summary_data)[:300] + "..."
-                        if len(str(summary_data)) > 300
-                        else str(summary_data)
-                    )
-            else:
-                content_preview = "No content preview available."
-
-            # Enhanced quality indicators
-            domain_quality = (
-                "[HIGH]"
-                if any(
-                    domain in url.lower()
-                    for domain in [".edu", ".gov", ".org", "pubmed", "scholar"]
-                )
-                else "[MED]" if ".com" in url.lower() else "[STD]"
-            )
-            relevance = "[***]" if score > 0.8 else "[**]" if score > 0.6 else "[*]"
-
-            formatted_results.append(
-                f"{i}. {domain_quality} {relevance} {title}\n"
-                f"   URL: {url}\n"
-                f"   Relevance Score: {score:.2f}\n"
-                f"   Content: {content_preview}\n"
-            )
-
-        logger.info(f"[SEARCH] Exa search completed: {len(results)} results found")
-        return "\n".join(formatted_results)
-
-    except requests.Timeout:
-        logger.error("Exa search timeout")
-        return f"Search timeout for query: {query}. Please try again."
-    except requests.RequestException as e:
-        logger.error(f"Exa search request failed: {e}")
-        return f"Search request failed: {str(e)}. Check network connection and API key."
     except Exception as e:
-        logger.error(f"Unexpected error in exa_search: {e}")
-        return f"Unexpected search error: {str(e)}. Please try a different query."
+        logger.error(f"Exa search failed: {e}")
+        return f"Search failed: {str(e)}. Please try again."
 
 
 # --- Enhanced Data Structures ---
@@ -1283,7 +1281,9 @@ class CitationAgent:
             verbose=False,
         )
 
-        logger.info("[CITATION] CitationAgent initialized with quality assurance capabilities")
+        logger.info(
+            "[CITATION] CitationAgent initialized with quality assurance capabilities"
+        )
 
     def _get_citation_prompt(self) -> str:
         """Advanced citation agent prompt following paper specifications."""
@@ -1324,7 +1324,9 @@ No explanations outside the JSON structure."""
         Process citations with quality assessment and verification.
         Implements the paper's citation processing workflow.
         """
-        logger.info("[CITATION] CitationAgent processing citations and quality assurance...")
+        logger.info(
+            "[CITATION] CitationAgent processing citations and quality assurance..."
+        )
 
         # Prepare source information for citation processing
         source_info = ""
@@ -1595,6 +1597,8 @@ class AdvancedResearch:
 
     def __init__(
         self,
+        name: str = "AdvancedResearch",
+        description: str = "Advanced Research System - Main orchestrator implementing the paper's architecture.",
         model_name: str = "claude-3-7-sonnet-20250219",
         max_iterations: int = 3,
         max_workers: int = 5,
@@ -1605,6 +1609,8 @@ class AdvancedResearch:
         memory_optimization: bool = True,
     ):
         """Initialize the Advanced Research System with paper-specified architecture."""
+        self.name = name
+        self.description = description
         self.model_name = model_name
         self.max_iterations = max_iterations
         self.max_workers = max_workers
@@ -1624,7 +1630,6 @@ class AdvancedResearch:
         self.system_memory = None
 
         logger.info(
-
             "AdvancedResearch System initialized with orchestrator-worker architecture"
         )
         logger.info(
@@ -1696,12 +1701,11 @@ class AdvancedResearch:
                 logger.info(
                     f"[ITERATION] === Dynamic Iteration {iteration}/{self.max_iterations} ==="
                 )
-                
+
                 # Validate and prepare tasks for execution
                 current_tasks = strategy.subtasks
                 if not current_tasks:
                     logger.warning(
-
                         f"[WARN] No tasks available for iteration {iteration}. Breaking."
                     )
                     break
@@ -1769,7 +1773,9 @@ class AdvancedResearch:
                 if result.source_collection:
                     all_sources.extend(result.source_collection)
 
-            logger.info(f"[SOURCES] Collected {len(all_sources)} total sources from subagents")
+            logger.info(
+                f"[SOURCES] Collected {len(all_sources)} total sources from subagents"
+            )
 
             # Remove duplicates and process citations
             unique_sources = {
@@ -1787,7 +1793,6 @@ class AdvancedResearch:
                 or not synthesis_result.synthesized_report.strip()
             ):
                 logger.error(
-
                     "[ERROR] Synthesis result is empty! Creating emergency fallback report."
                 )
                 synthesis_result.synthesized_report = f"# Research Report: {query}\n\nThe research system encountered issues during synthesis. Here are the available findings:\n\n"
@@ -1863,7 +1868,6 @@ The Advanced Research System completed execution but encountered issues in repor
                 final_report_content += "\n## System Information\nThis emergency report was generated due to processing issues in the citation system.\n"
 
             logger.info(
-
                 f"[REPORT] Final report prepared - Length: {len(final_report_content)} characters"
             )
 
@@ -1972,7 +1976,7 @@ The Advanced Research System completed execution but encountered issues in repor
                     results.append(result)
 
                     agent_id = future_to_agent[future]
-              
+
                     status = "SUCCESS" if not result.error_status else "FAILED"
 
                     logger.info(
@@ -1983,7 +1987,7 @@ The Advanced Research System completed execution but encountered issues in repor
                     agent_id = future_to_agent[future]
 
                     logger.error(f"[ERROR] [{agent_id}] execution failed: {e}")
-              
+
                     # Create error result for failed agent
                     error_result = SubagentResult(
                         agent_id=agent_id,
@@ -2931,7 +2935,7 @@ Based on this research investigation, we recommend:
             }
 
             with open(file_path, "w", encoding="utf-8") as f:
-              json.dump(json_data, f, indent=2, ensure_ascii=False)
+                json.dump(json_data, f, indent=2, ensure_ascii=False)
             logger.info(f"Research report successfully exported to JSON: {file_path}")
             return file_path
         except Exception as e:
