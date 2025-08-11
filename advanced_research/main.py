@@ -305,10 +305,6 @@ class LeadResearcherAgent:
             system_prompt=self._get_orchestrator_prompt(),
             model_name=model_name,
             max_loops=1,
-            autosave=True,
-            saved_state_path=str(self.base_path / "lead_researcher.json"),
-            verbose=False,
-            retry_attempts=2,
         )
 
         logger.info(
@@ -816,8 +812,6 @@ class ResearchSubagent:
             tools=[
                 configured_exa_search
             ],  # Primary tool for web research with configured results
-            verbose=False,
-            retry_attempts=1,
         )
 
         logger.info(
@@ -1271,9 +1265,6 @@ class CitationAgent:
             system_prompt=self._get_citation_prompt(),
             model_name=model_name,
             max_loops=1,
-            autosave=True,
-            saved_state_path=str(self.base_path / "citation_agent.json"),
-            verbose=False,
         )
 
         logger.info(
@@ -1601,7 +1592,7 @@ class AdvancedResearch:
         description: str = "Advanced Research System - Main orchestrator implementing the paper's architecture.",
         model_name: str = "claude-3-7-sonnet-20250219",
         max_iterations: int = 3,
-        max_workers: int = 5,
+        max_workers: int = os.cpu_count() + 1,
         max_subagent_iterations: int = 3,
         max_search_results: int = 5,
         base_path: str = "agent_workspace",
@@ -1616,26 +1607,29 @@ class AdvancedResearch:
         self.max_workers = max_workers
         self.max_subagent_iterations = max_subagent_iterations
         self.max_search_results = max_search_results
-        self.base_path = Path(base_path)
-        self.base_path.mkdir(exist_ok=True)
         self.enable_parallel_execution = enable_parallel_execution
         self.memory_optimization = memory_optimization
+        self.base_path = base_path
+
+        self.setup()
+
+    def setup(self):
+        self.base_path = Path(self.base_path)
+        self.base_path.mkdir(exist_ok=True)
 
         # Initialize core agents following paper architecture
-        self.lead_researcher = LeadResearcherAgent(model_name, str(self.base_path))
-        self.citation_agent = CitationAgent(model_name, str(self.base_path))
+        self.lead_researcher = LeadResearcherAgent(self.model_name, str(self.base_path))
+        self.citation_agent = CitationAgent(self.model_name, str(self.base_path))
 
         # System state and metrics
         self.orchestration_metrics = OrchestrationMetrics()
         self.system_memory = None
 
         logger.info(
-            "AdvancedResearch System initialized with orchestrator-worker architecture"
-        )
-        logger.info(
-            f"Configuration: {max_workers} workers, {max_iterations} iterations, "
-            f"subagent_iterations={max_subagent_iterations}, search_results={max_search_results}, "
-            f"parallel={enable_parallel_execution}"
+            f"AdvancedResearch System initialized with orchestrator-worker architecture | "
+            f"Configuration: {self.max_workers} workers, {self.max_iterations} iterations, "
+            f"subagent_iterations={self.max_subagent_iterations}, search_results={self.max_search_results}, "
+            f"parallel={self.enable_parallel_execution}"
         )
 
     def research(
