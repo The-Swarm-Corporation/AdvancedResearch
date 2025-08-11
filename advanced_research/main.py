@@ -1,6 +1,7 @@
 import os
 import re
 import time
+import uuid
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -1567,6 +1568,10 @@ No explanations outside the JSON structure."""
 # --- Main Orchestrator Implementation ---
 
 
+def get_id():
+    return f"id-{uuid.uuid4()}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+
+
 class AdvancedResearch:
     """
     Advanced Research System - Main orchestrator implementing the paper's architecture.
@@ -1591,6 +1596,7 @@ class AdvancedResearch:
 
     def __init__(
         self,
+        id: str = get_id(),
         name: str = "AdvancedResearch",
         description: str = "Advanced Research System - Main orchestrator implementing the paper's architecture.",
         model_name: str = "claude-3-7-sonnet-20250219",
@@ -1602,7 +1608,7 @@ class AdvancedResearch:
         enable_parallel_execution: bool = True,
         memory_optimization: bool = True,
     ):
-        """Initialize the Advanced Research System with paper-specified architecture."""
+        self.id = id
         self.name = name
         self.description = description
         self.model_name = model_name
