@@ -1,5 +1,3 @@
-import json
-
 from advanced_research.main import exa_search
 
 out = exa_search(

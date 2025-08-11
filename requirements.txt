@@ -4,3 +4,4 @@ pydantic
 httpx
 python-dotenv
 requests
+orjson

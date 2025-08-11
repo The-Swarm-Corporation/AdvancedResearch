@@ -1,7 +1,5 @@
-import json
 import os
 import re
-import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from dataclasses import dataclass, field
@@ -10,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 import httpx
+import orjson
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError
@@ -229,7 +228,7 @@ def exa_search(
         response.raise_for_status()
         json_data = response.json()
 
-        return json.dumps(json_data, indent=4)
+        return orjson.dumps(json_data, option=orjson.OPT_INDENT_2).decode("utf-8")
 
     except Exception as e:
         logger.error(f"Exa search failed: {e}")
@@ -723,10 +722,10 @@ STANDARDS:
             matches = re.findall(pattern, response, re.DOTALL)
             for match in matches:
                 try:
-                    json_data = json.loads(match)
+                    json_data = orjson.loads(match)
                     logger.debug(f"JSON extracted with pattern {i+1}")
                     return thinking_content, json_data, None
-                except json.JSONDecodeError as e:
+                except Exception as e:
                     logger.debug(f"Pattern {i+1} JSON decode failed: {e}")
                     continue
 
@@ -741,10 +740,10 @@ STANDARDS:
             remaining_content = remaining_content.strip("`").strip()
 
             try:
-                json_data = json.loads(remaining_content)
+                json_data = orjson.loads(remaining_content)
                 logger.debug("JSON extracted from content after thinking block")
                 return thinking_content, json_data, None
-            except json.JSONDecodeError as e:
+            except Exception as e:
                 logger.debug(f"Post-thinking JSON parse failed: {e}")
 
         # Third try: look for JSON anywhere in the response
@@ -755,18 +754,18 @@ STANDARDS:
 
             if json_start != -1 and json_end > json_start:
                 potential_json = response[json_start:json_end]
-                json_data = json.loads(potential_json)
+                json_data = orjson.loads(potential_json)
                 logger.debug("JSON extracted by position search")
                 return thinking_content, json_data, None
-        except (json.JSONDecodeError, ValueError) as e:
+        except (orjson.JSONDecodeError, ValueError) as e:
             logger.debug(f"Position-based JSON extraction failed: {e}")
 
         # Final fallback: try entire response as JSON (unlikely to work but worth trying)
         try:
-            json_data = json.loads(response.strip())
+            json_data = orjson.loads(response.strip())
             logger.debug("Entire response parsed as JSON (no thinking block found)")
             return thinking_content, json_data, None
-        except json.JSONDecodeError as e:
+        except orjson.JSONDecodeError as e:
             error_msg = f"All JSON parsing attempts failed. Last error: {str(e)}"
             logger.warning(f"{error_msg}")
             logger.debug(f"Response preview: {response[:200]}...")
@@ -1119,14 +1118,11 @@ CRITICAL: Your 'findings' field must contain actual research content, not templa
                     logger.debug(
                         f"[{self.agent_id}] Pattern {i+1} matched, JSON length: {len(json_str)} chars"
                     )
-                    parsed_data = json.loads(json_str)
+                    parsed_data = orjson.loads(json_str)
                     logger.info(
                         f"[{self.agent_id}] Successfully parsed JSON with pattern {i+1}"
                     )
                     return parsed_data, None
-            except json.JSONDecodeError as e:
-                logger.debug(f"[{self.agent_id}] Pattern {i+1} JSON decode failed: {e}")
-                continue
             except Exception as e:
                 logger.debug(f"[{self.agent_id}] Pattern {i+1} failed: {e}")
                 continue
@@ -1136,12 +1132,12 @@ CRITICAL: Your 'findings' field must contain actual research content, not templa
             logger.debug(
                 f"[{self.agent_id}] Trying to parse entire response as JSON..."
             )
-            parsed_data = json.loads(cleaned_response)
+            parsed_data = orjson.loads(cleaned_response)
             logger.debug(
                 f"[{self.agent_id}] Successfully parsed entire response as JSON"
             )
             return parsed_data, None
-        except json.JSONDecodeError as e:
+        except orjson.JSONDecodeError as e:
             logger.warning(
                 f"[{self.agent_id}] All JSON parsing attempts failed. JSON Error: {str(e)}"
             )
@@ -1422,13 +1418,13 @@ No explanations outside the JSON structure."""
             match = re.search(pattern, response, re.DOTALL)
             if match:
                 try:
-                    return json.loads(match.group(1)), None
-                except json.JSONDecodeError:
+                    return orjson.loads(match.group(1)), None
+                except orjson.JSONDecodeError:
                     continue
 
         try:
-            return json.loads(response.strip()), None
-        except json.JSONDecodeError as e:
+            return orjson.loads(response.strip()), None
+        except orjson.JSONDecodeError as e:
             return None, f"Citation JSON parsing failed: {str(e)}"
 
     def _create_basic_citations(
@@ -2599,8 +2595,8 @@ If this error persists, please contact the system administrator with the error d
                 report_content, query, research_results, metrics
             )
 
-            with open(json_path, "w", encoding="utf-8") as f:
-                json.dump(research_json, f, indent=2, ensure_ascii=False)
+            with open(json_path, "wb") as f:
+                f.write(orjson.dumps(research_json, option=orjson.OPT_INDENT_2))
 
             logger.info(f"Comprehensive research report exported to JSON: {json_path}")
             return json_path
@@ -2617,8 +2613,8 @@ If this error persists, please contact the system administrator with the error d
                     "export_status": "fallback_export",
                     "error": str(e),
                 }
-                with open(fallback_path, "w", encoding="utf-8") as f:
-                    json.dump(fallback_json, f, indent=2, ensure_ascii=False)
+                with open(fallback_path, "wb") as f:
+                    f.write(orjson.dumps(fallback_json, option=orjson.OPT_INDENT_2))
                 logger.info(f"Fallback JSON export completed: {fallback_path}")
                 return fallback_path
             except Exception as e2:
@@ -2932,8 +2928,8 @@ Based on this research investigation, we recommend:
                 },
             }
 
-            with open(file_path, "w", encoding="utf-8") as f:
-                json.dump(json_data, f, indent=2, ensure_ascii=False)
+            with open(file_path, "wb") as f:
+                f.write(orjson.dumps(json_data, option=orjson.OPT_INDENT_2))
             logger.info(f"Research report successfully exported to JSON: {file_path}")
             return file_path
         except Exception as e:
