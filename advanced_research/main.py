@@ -10,8 +10,6 @@ from pathlib import Path
 from typing import Any
 
 import httpx
-import requests
-import yaml
 from dotenv import load_dotenv
 from loguru import logger
 from pydantic import BaseModel, Field, ValidationError

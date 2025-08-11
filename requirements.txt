@@ -1,0 +1,6 @@
+swarms
+loguru
+pydantic
+httpx
+python-dotenv
+requests
