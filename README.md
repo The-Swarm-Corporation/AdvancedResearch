@@ -98,55 +98,14 @@ The system follows a dynamic, multi-phase workflow with enhanced coordination:
 `uv` provides the fastest and most reliable package management experience:
 
 ```bash
-# Install uv if you haven't already
-curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Install the package
-uv add advancedresearch
+pip3 install -U advanced-research
 
-# Or create a new project with advancedresearch
-uv init my-research-project
-cd my-research-project
-uv add advancedresearch
+# OR UV
+uv pip install -U advanced-research
+
+
 ```
-
-### Alternative Installation Methods
-
-```bash
-# Using pip
-pip install advancedresearch
-
-# Using poetry
-poetry add advancedresearch
-```
-
-### Development Installation
-
-For development or to access the latest features:
-
-```bash
-# Clone the repository
-git clone https://github.com/The-Swarm-Corporation/AdvancedResearch.git
-cd AdvancedResearch
-
-# Install with uv (recommended)
-uv sync
-
-# Or with poetry
-poetry install
-
-# Or with pip
-pip install -e .
-```
-
-### Why uv?
-
-We recommend `uv` for the best experience with AdvancedResearch:
-
-- **⚡ 10-100x faster** than pip for dependency resolution and installation
-- **🔒 Reliable**: Deterministic builds with automatic virtual environment management
-- **🎯 Simple**: Single tool for project management, dependency resolution, and Python version management
-- **🔄 Compatible**: Drop-in replacement for pip with better performance
 
 ### Environment Setup
 
@@ -164,44 +123,6 @@ OPENAI_API_KEY="your_openai_api_key_here"
 ```
 
 ## 🚀 Quick Start
-
-### Complete uv Workflow
-
-Get started with AdvancedResearch using uv for the optimal experience:
-
-```bash
-# Install uv (if not already installed)
-curl -LsSf https://astral.sh/uv/install.sh | sh
-
-# Create a new project
-uv init my-research-project
-cd my-research-project
-
-# Add advancedresearch
-uv add advancedresearch
-
-# Create your research script
-cat > research.py << 'EOF'
-from advancedresearch import AdvancedResearch
-
-# Initialize the system
-research_system = AdvancedResearch()
-
-# Run research
-results = research_system.research(
-    "What are the latest developments in quantum computing?",
-    export=True,
-    export_path="quantum_computing_report.md"
-)
-
-print(f"Research completed! Report: {results['research_metadata']['exported_to']}")
-EOF
-
-# Run your research
-uv run research.py
-```
-
-## Example
 
 
 ```python
