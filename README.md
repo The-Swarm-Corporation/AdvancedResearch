@@ -147,6 +147,16 @@ available_formats = research_system.get_output_methods()
 print(f"Available output formats: {available_formats}")
 ```
 
+## 📋 Quick Reference
+
+| Task | Code | Documentation |
+|------|------|---------------|
+| **Basic Research** | `AdvancedResearch().run("query")` | [Basic Usage →](DOCS.md#basic-research-setup) |
+| **Export Results** | `AdvancedResearch(export_on=True)` | [Export Config →](DOCS.md#configuration-examples) |
+| **Batch Processing** | `system.batched_run([queries])` | [Batch Processing →](DOCS.md#batch-processing-setup) |
+| **Custom Models** | `AdvancedResearch(director_model_name="model")` | [Advanced Config →](DOCS.md#advanced-multi-loop-research) |
+| **Output Formats** | `AdvancedResearch(output_type="json")` | [Output Types →](DOCS.md#types-and-enums) |
+
 ## ✨ Key Features
 
 | Feature | Description |
@@ -280,11 +290,23 @@ If you use this work in your research, please cite both the original paper and t
 }
 ```
 
+## 📚 Documentation
+
+For comprehensive API documentation, examples, and advanced usage:
+
+**[📖 View Full API Documentation →](DOCS.md)**
+
+The documentation includes:
+- Complete API reference for the `AdvancedResearch` class
+- Method signatures and parameter details
+- Configuration examples and best practices
+- Error handling and troubleshooting
+- Output format specifications
+
 ## 🔗 Related Work
 
 - [Original Paper](https://www.anthropic.com/engineering/built-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
 - [Swarms Framework](https://github.com/kyegomez/swarms) - The underlying multi-agent AI orchestration framework
-- [Full Documentation](https://github.com/The-Swarm-Corporation/AdvancedResearch/blob/main/Docs.md) - Comprehensive API reference and advanced usage guide
 
 ## 📞 Support
 
