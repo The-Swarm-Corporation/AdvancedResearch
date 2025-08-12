@@ -6,5 +6,7 @@ python-dotenv
 requests
 orjson
 gradio
+fastapi
+uvicorn
 black
 ruff

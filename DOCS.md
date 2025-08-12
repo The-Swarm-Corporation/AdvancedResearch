@@ -10,7 +10,17 @@
 - [Utility Functions](#utility-functions)
 - [Types and Enums](#types-and-enums)
 - [Configuration Examples](#configuration-examples)
+  - [Basic Research Setup](#basic-research-setup)
+  - [Advanced Multi-Loop Research](#advanced-multi-loop-research)
+  - [Batch Processing Setup](#batch-processing-setup)
+  - [Custom Output Format](#custom-output-format)
+  - [Chat Interface Setup](#chat-interface-setup)
+  - [REST API Deployment](#rest-api-deployment)
+  - [Mixed Mode Configuration](#mixed-mode-configuration)
+- [Dependencies](#dependencies)
 - [Error Handling](#error-handling)
+- [Environment Variables](#environment-variables)
+- [File Outputs](#file-outputs)
 
 ## Overview
 
@@ -41,6 +51,7 @@ from advanced_research.main import AdvancedResearch
 | `max_loops` | `int` | `1` | Number of research iteration loops to execute |
 | `export_on` | `bool` | `False` | Whether to automatically export conversation history to JSON file |
 | `director_max_loops` | `int` | `1` | Maximum number of loops for the director agent execution |
+| `chat_interface` | `bool` | `False` | Whether to launch a Gradio chat interface instead of running directly |
 
 **Example:**
 ```python
@@ -58,17 +69,18 @@ research_system = AdvancedResearch(
 
 ### Methods
 
-#### `run(task: str, img: Optional[str] = None) -> str | None`
+#### `run(task: str = None, img: Optional[str] = None, **kwargs) -> str | None`
 
-Executes the main research workflow for a given task.
+Executes the main research workflow for a given task. If `chat_interface=True`, launches a Gradio chat interface instead.
 
 **Parameters:**
-- `task` (str): The research question or task to investigate
+- `task` (str, optional): The research question or task to investigate. Not required when `chat_interface=True`
 - `img` (Optional[str]): Optional image input for multimodal research (default: None)
+- `**kwargs`: Additional arguments to pass to `launch_chat_interface()` when using chat interface
 
 **Returns:**
-- `str`: Formatted conversation history if `export_on=False`
-- `None`: If `export_on=True` (results saved to JSON file)
+- `str`: Formatted conversation history if `export_on=False` and `chat_interface=False`
+- `None`: If `export_on=True` (results saved to JSON file) or when launching chat interface
 
 **Example:**
 ```python
@@ -137,6 +149,103 @@ print(f"Available formats: {available_formats}")
 # Output: Available formats: ['all', 'json', 'markdown']
 ```
 
+#### `chat_response(message: str, history: List[List[str]]) -> str`
+
+Processes a chat message and returns the research response for Gradio interface.
+
+**Parameters:**
+- `message` (str): The user's research question/task
+- `history` (List[List[str]]): Chat history from Gradio (not used internally)
+
+**Returns:**
+- `str`: The final research response from the director agent
+
+**Example:**
+```python
+# This method is typically called internally by Gradio
+response = research_system.chat_response(
+    "What are the latest AI developments?", 
+    []
+)
+```
+
+#### `create_gradio_interface() -> gr.Interface`
+
+Creates and returns a Gradio chat interface for the research system.
+
+**Returns:**
+- `gr.Interface`: The configured Gradio ChatInterface
+
+**Raises:**
+- `ImportError`: If Gradio is not installed
+
+**Example:**
+```python
+interface = research_system.create_gradio_interface()
+# Now you can launch it manually
+interface.launch()
+```
+
+#### `launch_chat_interface(share: bool = False, server_name: str = "127.0.0.1", server_port: int = 7860, **kwargs) -> None`
+
+Launches the Gradio chat interface for interactive research.
+
+**Parameters:**
+- `share` (bool): Whether to create a public link. Default is False
+- `server_name` (str): Server host. Default is "127.0.0.1"
+- `server_port` (int): Server port. Default is 7860
+- `**kwargs`: Additional arguments to pass to `gradio.launch()`
+
+**Returns:**
+- `None`: Launches the interface in blocking mode
+
+**Example:**
+```python
+# Launch local interface
+research_system.launch_chat_interface()
+
+# Launch with public sharing
+research_system.launch_chat_interface(
+    share=True,
+    server_port=8080
+)
+```
+
+#### `api(host: str = "127.0.0.1", port: int = 8000, reload: bool = False, **kwargs) -> None`
+
+Deploys the Advanced Research system as a REST API using FastAPI.
+
+**Parameters:**
+- `host` (str): Server host address. Default is "127.0.0.1"
+- `port` (int): Server port. Default is 8000
+- `reload` (bool): Enable auto-reload for development. Default is False
+- `**kwargs`: Additional arguments to pass to `uvicorn.run()`
+
+**Available Endpoints:**
+- `GET /`: Root endpoint with API information
+- `GET /health`: Health check endpoint
+- `POST /research`: Conduct a single research task
+- `POST /research/batch`: Conduct multiple research tasks
+- `GET /research/methods`: Get available output methods
+- `GET /system/info`: Get system configuration info
+- `GET /docs`: Interactive API documentation (Swagger UI)
+- `GET /redoc`: Alternative API documentation (ReDoc)
+
+**Example:**
+```python
+# Start the API server
+research_system = AdvancedResearch(name="My Research API")
+research_system.api(host="0.0.0.0", port=8080)
+
+# Make requests to the API (from another terminal/script)
+import requests
+response = requests.post(
+    "http://localhost:8080/research",
+    json={"task": "What are the latest AI trends?"}
+)
+print(response.json())
+```
+
 ### Attributes
 
 | Attribute | Type | Description |
@@ -153,6 +262,7 @@ print(f"Available formats: {available_formats}")
 | `export_on` | `bool` | Export enablement flag |
 | `director_max_loops` | `int` | Director loop limit |
 | `conversation` | `Conversation` | Swarms conversation object for history tracking |
+| `chat_interface` | `bool` | Flag indicating whether to use chat interface mode |
 
 ## Utility Functions
 
@@ -203,6 +313,31 @@ Creates and runs a director agent for research coordination.
 **Returns:**
 - `str`: Director agent output
 
+### `summarization_agent(model_name: str = "claude-3-7-sonnet-20250219", task: str = None, max_tokens: int = 1000, img: str = None, **kwargs) -> str`
+
+Creates a summarization agent for generating concise summaries of research findings.
+
+**Parameters:**
+- `model_name` (str): Model to use for summarization. Default is "claude-3-7-sonnet-20250219"
+- `task` (str): The summarization task
+- `max_tokens` (int): Token limit for summary. Default is 1000
+- `img` (str): Optional image input
+- `**kwargs`: Additional keyword arguments
+
+**Returns:**
+- `str`: Generated summary
+
+### `create_json_file(data: dict, file_name: str) -> None`
+
+Utility function to create or update JSON files with conversation data.
+
+**Parameters:**
+- `data` (dict): Data to write to the file
+- `file_name` (str): Target file name
+
+**Returns:**
+- `None`: File is created/updated on disk
+
 ## Types and Enums
 
 ### HistoryOutputType
@@ -210,8 +345,27 @@ Creates and runs a director agent for research coordination.
 String literal type for output formatting options:
 
 - `"all"`: Complete conversation history with full context
+- `"final"`: Only the final output from the research process
 - `"json"`: JSON-formatted output
 - `"markdown"`: Markdown-formatted output
+
+### AdvancedResearchAdditionalConfig
+
+Configuration schema for advanced research system settings:
+
+```python
+class AdvancedResearchAdditionalConfig(BaseModel):
+    worker_model_name: str = "gpt-4.1"
+    worker_max_tokens: int = 8000
+    exa_search_num_results: int = 2
+    exa_search_max_characters: int = 100
+```
+
+**Configuration Fields:**
+- `worker_model_name`: Model name for worker agents
+- `worker_max_tokens`: Maximum tokens for worker agent responses
+- `exa_search_num_results`: Number of search results to return from Exa API
+- `exa_search_max_characters`: Maximum characters per Exa search result
 
 ## Configuration Examples
 
@@ -282,6 +436,123 @@ markdown_result = custom_system.run("Benefits of renewable energy")
 print(markdown_result)
 ```
 
+### Chat Interface Setup
+
+```python
+# Chat interface configuration
+chat_system = AdvancedResearch(
+    name="Interactive Research Assistant",
+    description="Ask me any research question for comprehensive analysis",
+    chat_interface=True,
+    director_model_name="claude-3-5-sonnet-20250115",
+    director_max_tokens=10000
+)
+
+# Launch the chat interface
+chat_system.run()  # This will launch Gradio interface
+# Or explicitly launch with custom settings
+chat_system.launch_chat_interface(
+    share=True,  # Create public link
+    server_port=8080
+)
+```
+
+### REST API Deployment
+
+```python
+# API deployment configuration
+api_system = AdvancedResearch(
+    name="Research API Service",
+    description="REST API for automated research tasks",
+    export_on=False,  # Return results directly via API
+    output_type="json"
+)
+
+# Deploy as REST API
+api_system.api(
+    host="0.0.0.0",  # Accept external connections
+    port=8000,
+    reload=True  # Development mode
+)
+
+# Example API usage (from client)
+import requests
+
+# Single research task
+response = requests.post(
+    "http://localhost:8000/research",
+    json={"task": "Latest developments in renewable energy"}
+)
+result = response.json()
+
+# Batch research tasks
+batch_response = requests.post(
+    "http://localhost:8000/research/batch",
+    json={
+        "tasks": [
+            "AI safety research trends",
+            "Quantum computing applications",
+            "Climate change solutions"
+        ]
+    }
+)
+batch_results = batch_response.json()
+```
+
+### Mixed Mode Configuration
+
+```python
+# System that supports multiple interfaces
+multi_system = AdvancedResearch(
+    name="Multi-Interface Research System",
+    description="Supports direct calls, chat, and API",
+    director_model_name="claude-3-5-sonnet-20250115",
+    output_type="all",
+    export_on=True
+)
+
+# Use programmatically
+result = multi_system.run("Research quantum computing")
+
+# Launch chat interface
+multi_system.launch_chat_interface(server_port=7860)
+
+# Deploy API (in separate process/script)
+multi_system.api(port=8000)
+```
+
+## Dependencies
+
+The Advanced Research System requires the following key dependencies:
+
+### Core Dependencies
+- `swarms`: Multi-agent framework
+- `anthropic` or `openai`: LLM providers
+- `httpx`: HTTP client for Exa API
+- `pydantic`: Data validation
+- `loguru`: Logging
+- `orjson`: Fast JSON serialization
+
+### Optional Dependencies
+- `gradio`: For chat interface functionality
+- `fastapi`: For REST API deployment
+- `uvicorn`: ASGI server for API
+
+### Installation
+```bash
+# Core installation
+pip install advanced-research
+
+# With chat interface support
+pip install advanced-research[chat]
+
+# With API support  
+pip install advanced-research[api]
+
+# Full installation with all features
+pip install advanced-research[all]
+```
+
 ## Error Handling
 
 The system includes built-in error handling for:
@@ -297,6 +568,9 @@ The system includes built-in error handling for:
 2. **Network Connectivity**: Check internet connection for Exa searches
 3. **Model Limits**: Adjust `max_tokens` if hitting model limits
 4. **Invalid Output Types**: Use only supported `HistoryOutputType` values
+5. **Missing Dependencies**: Install `gradio` for chat interface or `fastapi` for API features
+6. **Port Conflicts**: Ensure specified ports are available for chat/API interfaces
+7. **Chat Interface Errors**: Handle Gradio-specific errors gracefully
 
 **Example Error Handling:**
 
@@ -312,6 +586,27 @@ try:
 except Exception as e:
     print(f"Research failed: {e}")
     # Implement fallback or retry logic
+
+# Chat interface error handling
+try:
+    chat_system = AdvancedResearch(chat_interface=True)
+    chat_system.run()
+except ImportError:
+    print("Gradio not installed. Install with: pip install gradio")
+except Exception as e:
+    print(f"Chat interface failed: {e}")
+
+# API deployment error handling  
+try:
+    api_system = AdvancedResearch()
+    api_system.api(port=8000)
+except ImportError:
+    print("FastAPI/uvicorn not installed. Install with: pip install fastapi uvicorn")
+except OSError as e:
+    if "Address already in use" in str(e):
+        print("Port 8000 is busy. Try a different port.")
+    else:
+        print(f"API deployment failed: {e}")
 ```
 
 ## Environment Variables
@@ -319,12 +614,18 @@ except Exception as e:
 Required environment variables:
 
 ```bash
-# Required
+# Required API Keys
 ANTHROPIC_API_KEY="your_anthropic_api_key"
 EXA_API_KEY="your_exa_api_key"
 
-# Optional  
+# Optional API Keys
 OPENAI_API_KEY="your_openai_api_key"
+
+# Worker Agent Configuration (Optional)
+WORKER_MODEL_NAME="gpt-4.1"                    # Default model for worker agents
+WORKER_MAX_TOKENS="8000"                       # Max tokens for worker responses
+EXA_SEARCH_NUM_RESULTS="2"                     # Number of Exa search results
+EXA_SEARCH_MAX_CHARACTERS="100"                # Max characters per search result
 ```
 
 ## File Outputs

@@ -4,10 +4,12 @@ import uuid
 from datetime import datetime
 from typing import Any, List, Optional
 
+import gradio as gr
 import httpx
 import orjson
 from dotenv import load_dotenv
 from loguru import logger
+from pydantic import BaseModel, Field
 from swarms import Agent
 from swarms.prompts.agent_conversation_aggregator import (
     AGGREGATOR_SYSTEM_PROMPT,
@@ -18,24 +20,20 @@ from swarms.utils.history_output_formatter import (
     history_output_formatter,
 )
 
-import gradio as gr
-
 from advanced_research.prompts import (
     get_orchestrator_prompt,
     get_synthesis_prompt,
 )
-
-from pydantic import BaseModel, Field
-
+from swarms import AgentJudge
 
 load_dotenv()
 
 
 model_name = os.getenv("WORKER_MODEL_NAME", "gpt-4.1")
-max_tokens = os.getenv("WORKER_MAX_TOKENS", 8000)
-exa_search_num_results = os.getenv("EXA_SEARCH_NUM_RESULTS", 2)
-exa_search_max_characters = os.getenv(
-    "EXA_SEARCH_MAX_CHARACTERS", 100
+max_tokens = int(os.getenv("WORKER_MAX_TOKENS", 8000))
+exa_search_num_results = int(os.getenv("EXA_SEARCH_NUM_RESULTS", 2))
+exa_search_max_characters = int(
+    os.getenv("EXA_SEARCH_MAX_CHARACTERS", 100)
 )
 
 
@@ -60,19 +58,6 @@ class AdvancedResearchAdditionalConfig(BaseModel):
 
 
 schema = AdvancedResearchAdditionalConfig()
-
-
-def run_agent(i: int, query: str):
-    agent = Agent(
-        agent_name=f"Worker-Search-Agent-{i}",
-        system_prompt=get_synthesis_prompt(),
-        model_name=schema.worker_model_name,
-        max_loops=1,
-        max_tokens=schema.worker_max_tokens,
-        tools=[exa_search],
-        tool_call_summary=True,
-    )
-    return agent.run(task=query)
 
 
 def summarization_agent(
@@ -210,6 +195,20 @@ def exa_search(
     except Exception as e:
         logger.error(f"Exa search failed: {e}")
         return f"Search failed: {str(e)}. Please try again."
+
+
+def run_agent(i: int, query: str):
+    # Can also put agent judge here
+    agent = Agent(
+        agent_name=f"Worker-Search-Agent-{i}",
+        system_prompt=get_synthesis_prompt(),
+        model_name=schema.worker_model_name,
+        max_loops=1,
+        max_tokens=schema.worker_max_tokens,
+        tools=[exa_search],
+        tool_call_summary=True,
+    )
+    return agent.run(task=query)
 
 
 def execute_worker_search_agents(
@@ -557,6 +556,71 @@ class AdvancedResearch:
             server_port=server_port,
             **kwargs,
         )
+
+    def api(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8000,
+        reload: bool = False,
+        **kwargs,
+    ):
+        """
+        Deploy the Advanced Research system as a REST API using FastAPI.
+        
+        This method launches a FastAPI server that provides HTTP endpoints
+        for conducting research tasks, batch processing, and system information.
+        
+        Args:
+            host (str): Server host address. Default is "127.0.0.1".
+            port (int): Server port. Default is 8000.
+            reload (bool): Enable auto-reload for development. Default is False.
+            **kwargs: Additional arguments to pass to uvicorn.run().
+            
+        Available Endpoints:
+            - GET /: Root endpoint with API information
+            - GET /health: Health check endpoint
+            - POST /research: Conduct a single research task
+            - POST /research/batch: Conduct multiple research tasks
+            - GET /research/methods: Get available output methods
+            - GET /system/info: Get system configuration info
+            - GET /docs: Interactive API documentation (Swagger UI)
+            - GET /redoc: Alternative API documentation (ReDoc)
+            
+        Example Usage:
+            # Start the API server
+            research_system = AdvancedResearch(name="My Research API")
+            research_system.api(host="0.0.0.0", port=8080)
+            
+            # Make requests to the API
+            curl -X POST "http://localhost:8080/research" \
+                 -H "Content-Type: application/json" \
+                 -d '{"task": "What are the latest AI trends?"}'
+        """
+        try:
+            from advanced_research.api import run_api_server
+
+            logger.info(f"Deploying {self.name} as REST API...")
+            logger.info(
+                f"API will be available at: http://{host}:{port}"
+            )
+            logger.info(
+                f"Interactive docs: http://{host}:{port}/docs"
+            )
+
+            # Launch the API server
+            run_api_server(
+                research_system=self,
+                host=host,
+                port=port,
+                reload=reload,
+                **kwargs,
+            )
+
+        except Exception as e:
+            logger.error(
+                f"Error deploying {self.name} as REST API: {e}"
+            )
+            raise e
 
     def get_output_methods(self):
         """
