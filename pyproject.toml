@@ -45,6 +45,7 @@ loguru = "*"
 pydantic = "*"
 httpx = "*"
 orjson = "*"
+gradio = "*"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

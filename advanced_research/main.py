@@ -18,27 +18,52 @@ from swarms.utils.history_output_formatter import (
     history_output_formatter,
 )
 
+import gradio as gr
+
 from advanced_research.prompts import (
     get_orchestrator_prompt,
     get_synthesis_prompt,
 )
+
+from pydantic import BaseModel, Field
+
+
+load_dotenv()
+
+
+# Schema
+class AdvancedResearchAdditionalConfig(BaseModel):
+    worker_model_name: str = Field(
+        default="gpt-4.1",
+        description="The model name to use for the worker agent.",
+    )
+    worker_max_tokens: int = Field(
+        default=8000,
+        description="The maximum number of tokens to use for the worker agent.",
+    )
+    exa_search_num_results: int = Field(
+        default=2,
+        description="The number of results to return from the Exa search tool.",
+    )
+    exa_search_max_characters: int = Field(
+        default=100,
+        description="The maximum number of characters to return from the Exa search tool.",
+    )
+    
+schema = AdvancedResearchAdditionalConfig()
 
 
 def run_agent(i: int, query: str):
     agent = Agent(
         agent_name=f"Worker-Search-Agent-{i}",
         system_prompt=get_synthesis_prompt(),
-        model_name="gpt-4.1",
+        model_name=schema.worker_model_name,
         max_loops=1,
-        max_tokens=8000,
+        max_tokens=schema.worker_max_tokens,
         tools=[exa_search],
         tool_call_summary=True,
     )
     return agent.run(task=query)
-
-
-# Load environment variables from .env file
-load_dotenv()
 
 
 def summarization_agent(
@@ -126,14 +151,11 @@ def exa_search(
         "content-type": "application/json",
     }
 
-    num_results = 2
-    max_characters = 100
-
     # Payload format for Exa API (see https://docs.exa.ai/reference/search)
     payload = {
         "query": query,
         "type": "auto",
-        "numResults": num_results,
+        "numResults": schema.exa_search_num_results,
         "contents": {
             "text": True,
             "summary": {
@@ -151,7 +173,9 @@ def exa_search(
                     },
                 }
             },
-            "context": {"maxCharacters": max_characters},
+            "context": {
+                "maxCharacters": schema.exa_search_max_characters
+            },
         },
     }
 
@@ -306,10 +330,11 @@ class AdvancedResearch:
         director_agent_name: str = "Director-Agent",
         director_model_name: str = "claude-3-7-sonnet-20250219",
         director_max_tokens: int = 8000,
-        output_type: HistoryOutputType = "all",
+        output_type: HistoryOutputType = "final",
         max_loops: int = 1,
         export_on: bool = False,
         director_max_loops: int = 1,
+        chat_interface: bool = False,
     ):
         """
         Initialize the AdvancedResearch system.
@@ -326,6 +351,7 @@ class AdvancedResearch:
             max_loops (int): Number of research loops to run.
             export_on (bool): Whether to export conversation history to a JSON file.
             director_max_loops (int): Maximum loops for the director agent.
+            chat_interface (bool): Whether to launch a Gradio chat interface instead of running directly.
         """
         self.id = id
         self.name = name
@@ -338,6 +364,7 @@ class AdvancedResearch:
         self.max_loops = max_loops
         self.export_on = export_on
         self.director_max_loops = director_max_loops
+        self.chat_interface = chat_interface
 
         self.conversation = Conversation(
             name=f"conversation-{self.id}"
@@ -367,19 +394,34 @@ class AdvancedResearch:
 
         return output
 
-    def run(self, task: str, img: Optional[str] = None):
+    def run(
+        self, task: str = None, img: Optional[str] = None, **kwargs
+    ):
         """
-        Run the advanced research system for the specified number of loops,
+        Run the advanced research system. If chat_interface=True, launches a Gradio chat interface.
+        Otherwise, runs the research system for the specified number of loops,
         maintaining conversation history across all iterations.
 
         Args:
-            task (str): The research task to execute.
+            task (str, optional): The research task to execute. Not required when chat_interface=True.
             img (Optional[str]): Optional image input.
+            **kwargs: Additional arguments to pass to launch_chat_interface() when using chat interface.
 
         Returns:
             str or list: Formatted conversation history containing all loop iterations,
                          or exports the conversation to a JSON file if export_on is True.
+                         Returns None when launching chat interface.
         """
+        if self.chat_interface:
+            # Launch the Gradio chat interface
+            self.launch_chat_interface(**kwargs)
+            return None
+
+        if task is None:
+            raise ValueError(
+                "task argument is required when chat_interface=False"
+            )
+
         self.conversation.add("human", task)
 
         self.step(task, img)
@@ -403,6 +445,109 @@ class AdvancedResearch:
             tasks (List[str]): List of research tasks to execute.
         """
         [self.run(task) for task in tasks]
+
+    def chat_response(
+        self, message: str, history: List[List[str]]
+    ) -> str:
+        """
+        Process a chat message and return the research response for Gradio interface.
+
+        Args:
+            message (str): The user's research question/task.
+            history (List[List[str]]): Chat history from Gradio.
+
+        Returns:
+            str: The final research response from the director agent.
+        """
+        try:
+            # Reset conversation for each new chat to avoid context buildup
+            self.conversation = Conversation(
+                name=f"conversation-{self.id}-{datetime.now().strftime('%Y%m%d%H%M%S')}"
+            )
+
+            # Add the user message to conversation
+            self.conversation.add("human", message)
+
+            # Run the research step
+            output = self.step(message)
+
+            return output
+
+        except Exception as e:
+            logger.error(f"Error in chat response: {e}")
+            return f"I apologize, but I encountered an error while processing your research request: {str(e)}"
+
+    def create_gradio_interface(self):
+        """
+        Create and return a Gradio chat interface for the research system.
+
+        Returns:
+            gr.Interface: The configured Gradio interface.
+        """
+        if gr is None:
+            raise ImportError(
+                "Gradio is not installed. Please install it with: pip install gradio"
+            )
+
+        # Create the chat interface
+        interface = gr.ChatInterface(
+            fn=self.chat_response,
+            title=self.name,
+            description=self.description,
+            examples=[
+                "What are the latest advances in quantum computing?",
+                "Research the most effective treatments for diabetes",
+                "What are the current trends in artificial intelligence?",
+                "Find information about renewable energy technologies",
+                "What are the latest developments in space exploration?",
+            ],
+            chatbot=gr.Chatbot(
+                height=600,
+                placeholder="Ask me any research question and I'll provide comprehensive findings using advanced AI agents.",
+            ),
+            textbox=gr.Textbox(
+                placeholder="Enter your research question here...",
+                container=False,
+                scale=7,
+            ),
+        )
+
+        return interface
+
+    def launch_chat_interface(
+        self,
+        share: bool = False,
+        server_name: str = "127.0.0.1",
+        server_port: int = 7860,
+        **kwargs,
+    ):
+        """
+        Launch the Gradio chat interface.
+
+        Args:
+            share (bool): Whether to create a public link. Default is False.
+            server_name (str): Server host. Default is "127.0.0.1".
+            server_port (int): Server port. Default is 7860.
+            **kwargs: Additional arguments to pass to gradio.launch().
+        """
+        if gr is None:
+            raise ImportError(
+                "Gradio is not installed. Please install it with: pip install gradio"
+            )
+
+        interface = self.create_gradio_interface()
+
+        logger.info(f"Launching {self.name} chat interface...")
+        logger.info(
+            f"Access the interface at: http://{server_name}:{server_port}"
+        )
+
+        interface.launch(
+            share=share,
+            server_name=server_name,
+            server_port=server_port,
+            **kwargs,
+        )
 
     def get_output_methods(self):
         """

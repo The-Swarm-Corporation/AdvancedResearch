@@ -296,13 +296,6 @@ For comprehensive API documentation, examples, and advanced usage:
 
 **[📖 View Full API Documentation →](DOCS.md)**
 
-The documentation includes:
-- Complete API reference for the `AdvancedResearch` class
-- Method signatures and parameter details
-- Configuration examples and best practices
-- Error handling and troubleshooting
-- Output format specifications
-
 ## 🔗 Related Work
 
 - [Original Paper](https://www.anthropic.com/engineering/built-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
