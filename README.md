@@ -18,7 +18,7 @@ An enhanced implementation of the orchestrator-worker pattern from Anthropic's p
 pip3 install -U advanced-research
 
 # Or 
-# uv pip install -U swarms
+# uv pip install -U advanced-research
 
 ```
 
