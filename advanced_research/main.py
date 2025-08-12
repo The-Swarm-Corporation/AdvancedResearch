@@ -436,7 +436,7 @@ class AdvancedResearch:
 
         if self.export_on:
             create_json_file(
-                data=self.conversation.return_messages_as_list(),
+                data=self.conversation.return_messages_as_dictionary(),
                 file_name=f"{self.id}.json",
             )
         else:
