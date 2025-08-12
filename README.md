@@ -17,9 +17,7 @@ An enhanced implementation of the orchestrator-worker pattern from Anthropic's p
 ```bash
 pip3 install -U advanced-research
 
-# Or 
 # uv pip install -U advanced-research
-
 ```
 
 ### Environment Setup
