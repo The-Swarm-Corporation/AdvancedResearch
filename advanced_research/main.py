@@ -1,6 +1,7 @@
+import concurrent.futures
 import os
-from datetime import datetime
 import uuid
+from datetime import datetime
 from typing import Any, List, Optional
 
 import httpx
@@ -21,6 +22,20 @@ from advanced_research.prompts import (
     get_orchestrator_prompt,
     get_synthesis_prompt,
 )
+
+
+def run_agent(i: int, query: str):
+    agent = Agent(
+        agent_name=f"Worker-Search-Agent-{i}",
+        system_prompt=get_synthesis_prompt(),
+        model_name="gpt-4.1",
+        max_loops=1,
+        max_tokens=8000,
+        tools=[exa_search],
+        tool_call_summary=True,
+    )
+    return agent.run(task=query)
+
 
 # Load environment variables from .env file
 load_dotenv()
@@ -180,9 +195,8 @@ def execute_worker_search_agents(
             A list of research queries (strings) to be processed. Each query will be handled by a separate agent.
 
     Returns:
-        list[str]:
-            A list containing the output (typically a summary or structured findings) from each worker search agent,
-            in the same order as the input queries.
+        str:
+            A string containing the output from all worker search agents, concatenated together.
 
     Workflow:
         1. For each query in the input list:
@@ -209,19 +223,17 @@ def execute_worker_search_agents(
         >>> print(results[0])  # Output from the first query's agent
         >>> print(results[1])  # Output from the second query's agent
     """
-    results = []
-    for i, query in enumerate(queries):
-        agent = Agent(
-            agent_name=f"Worker-Search-Agent-{i}",
-            system_prompt=get_synthesis_prompt(),
-            model_name="gpt-4.1",
-            max_loops=1,
-            max_tokens=8000,
-            tools=[exa_search],
-            tool_call_summary=True,
-        )
-        output = agent.run(task=query)
-        results.append(output)
+
+    with concurrent.futures.ThreadPoolExecutor() as executor:
+        futures = [
+            executor.submit(run_agent, i, query)
+            for i, query in enumerate(queries)
+        ]
+        results = [
+            future.result()
+            for future in concurrent.futures.as_completed(futures)
+        ]
+
     return " ".join(results)
 
 
@@ -232,7 +244,6 @@ def create_director_agent(
     max_tokens: int = 8000,
     img: Optional[str] = None,
     max_loops: int = 1,
-    **kwargs: Any,
 ):
     """
     Create a director agent for the advanced research system.
@@ -266,6 +277,26 @@ def generate_id():
 
 
 class AdvancedResearch:
+    """
+    AdvancedResearch is a high-level orchestrator for multi-agent research workflows.
+    It manages the research process by coordinating director and worker agents, maintaining
+    conversation history, and supporting export and output formatting.
+
+    Attributes:
+        id (str): Unique identifier for the research session.
+        name (str): Name of the research system or session.
+        description (str): Description of the research system or session.
+        worker_model_name (str): Model name used for worker agents.
+        director_agent_name (str): Name of the director agent.
+        director_model_name (str): Model name used for the director agent.
+        director_max_tokens (int): Maximum tokens for the director agent's output.
+        output_type (HistoryOutputType): Output format for conversation history.
+        max_loops (int): Number of research loops to run.
+        export_on (bool): Whether to export conversation history to a JSON file.
+        director_max_loops (int): Maximum loops for the director agent.
+        conversation (Conversation): Conversation object to store the research dialogue.
+    """
+
     def __init__(
         self,
         id: str = generate_id(),
@@ -280,6 +311,22 @@ class AdvancedResearch:
         export_on: bool = False,
         director_max_loops: int = 1,
     ):
+        """
+        Initialize the AdvancedResearch system.
+
+        Args:
+            id (str): Unique identifier for the research session.
+            name (str): Name of the research system or session.
+            description (str): Description of the research system or session.
+            worker_model_name (str): Model name for worker agents.
+            director_agent_name (str): Name of the director agent.
+            director_model_name (str): Model name for the director agent.
+            director_max_tokens (int): Maximum tokens for the director agent's output.
+            output_type (HistoryOutputType): Output format for conversation history.
+            max_loops (int): Number of research loops to run.
+            export_on (bool): Whether to export conversation history to a JSON file.
+            director_max_loops (int): Maximum loops for the director agent.
+        """
         self.id = id
         self.name = name
         self.description = description
@@ -298,16 +345,15 @@ class AdvancedResearch:
 
     def step(self, task: Optional[str], img: Optional[str] = None):
         """
-        Execute a single research step.
+        Execute a single research step by running the director agent on the given task.
 
         Args:
-            task (Optional[str]): The research task to execute
-            img (Optional[str]): Optional image input
+            task (Optional[str]): The research task to execute.
+            img (Optional[str]): Optional image input.
 
         Returns:
-            The output from the director agent
+            str: The output from the director agent.
         """
-
         # Run the director agent
         output = create_director_agent(
             agent_name=self.director_agent_name,
@@ -327,11 +373,12 @@ class AdvancedResearch:
         maintaining conversation history across all iterations.
 
         Args:
-            task (str): The research task to execute
-            img (Optional[str]): Optional image input
+            task (str): The research task to execute.
+            img (Optional[str]): Optional image input.
 
         Returns:
-            Formatted conversation history containing all loop iterations
+            str or list: Formatted conversation history containing all loop iterations,
+                         or exports the conversation to a JSON file if export_on is True.
         """
         self.conversation.add("human", task)
 
@@ -342,7 +389,6 @@ class AdvancedResearch:
                 data=self.conversation.return_messages_as_list(),
                 file_name=f"{self.id}.json",
             )
-
         else:
             # Return the complete conversation history from all loops
             return history_output_formatter(
@@ -350,7 +396,19 @@ class AdvancedResearch:
             )
 
     def batched_run(self, tasks: List[str]):
+        """
+        Run the research system on a batch of tasks.
+
+        Args:
+            tasks (List[str]): List of research tasks to execute.
+        """
         [self.run(task) for task in tasks]
 
     def get_output_methods(self):
+        """
+        Get the available output formatting methods.
+
+        Returns:
+            list: List of available HistoryOutputType values.
+        """
         return list(HistoryOutputType)

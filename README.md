@@ -10,100 +10,15 @@
 
 An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system,"](https://www.anthropic.com/engineering/built-multi-agent-research-system) using the `swarms` framework. This system achieves **90.2% performance improvement** over single-agent systems through advanced parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
 
-## ✨ Key Features
 
-| Feature | Description |
-|---------|-------------|
-| **Enhanced Orchestrator-Worker Architecture** | A `LeadResearcherAgent` with explicit thinking processes plans and synthesizes, while specialized `ResearchSubagent` workers execute focused tasks with iterative search capabilities. |
-| **Advanced Web Search Integration** | Utilizes `exa_search` with quality scoring, source reliability assessment, and multi-loop search strategies for comprehensive research. |
-| **LLM-as-Judge Evaluation** | Sophisticated progress evaluation system that determines research completeness, identifies missing topics, and guides iterative refinement. |
-| **High-Performance Parallel Execution** | Leverages `ThreadPoolExecutor` to run up to 5 specialized agents concurrently, achieving **90% time reduction** for complex queries. |
-| **Professional Citation System** | Enhanced `CitationAgent` with intelligent source descriptions, quality-based formatting, and academic-style citations. |
-| **Export Functionality** | Built-in report export to Markdown files with customizable paths, automatic timestamping, and comprehensive metadata. |
-| **Multi-Layer Error Recovery** | Advanced error handling with fallback content generation, emergency report creation, and adaptive task refinement. |
-| **Enhanced State Management** | Comprehensive orchestration metrics, conversation history tracking, and persistent agent states. |
-
-## 🏗️ Architecture
-
-The system follows a dynamic, multi-phase workflow with enhanced coordination:
-
-```
-                [User Query + Export Options]
-                            │
-                            ▼
-           ┌─────────────────────────────────┐
-           │    LeadResearcherAgent          │ (Enhanced Orchestrator)
-           │  - Query Analysis & Planning    │
-           │  - LLM-as-Judge Evaluation      │
-           │  - Iterative Strategy Refinement│
-           └─────────────────────────────────┘
-                            │ 1. Analyze & Decompose (with thinking process)
-                            ▼
-       ┌─────────────────────────────────────────┐
-       │         Parallel Sub-Tasks              │
-       │      (Up to 5 concurrent tasks)         │
-       └─────────────────────────────────────────┘
-          │           │           │           │
-          ▼           ▼           ▼           ▼
-    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
-    │SubAgent 1│ │SubAgent 2│ │SubAgent 3│ │SubAgent N│ (Specialized Workers)
-    │Multi-loop│ │Multi-loop│ │Multi-loop│ │Multi-loop│
-    │ Search   │ │ Search   │ │ Search   │ │ Search   │
-    └──────────┘ └──────────┘ └──────────┘ └──────────┘
-          │           │           │           │
-          ▼           ▼           ▼           ▼
-       ┌─────────────────────────────────────────┐
-       │     Enhanced Results Aggregation        │
-       │  - Quality Assessment & Confidence      │
-       │  - Source Deduplication & Scoring       │
-       └─────────────────────────────────────────┘
-                            │ 2. Synthesis & LLM-as-Judge Evaluation
-                            ▼
-           ┌─────────────────────────────────┐
-           │    LeadResearcherAgent          │
-           │  - Completeness Assessment      │
-           │  - Gap Identification           │
-           │  - Iterative Refinement         │
-           └─────────────────────────────────┘
-                            │ 3. Generate Final Report
-                            ▼
-           ┌─────────────────────────────────┐
-           │      Enhanced CitationAgent     │ (Post-Processor)
-           │  - Smart Source Descriptions    │
-           │  - Professional Citations       │
-           │  - Quality Assurance            │
-           └─────────────────────────────────┘
-                            │ 4. Export & Delivery
-                            ▼
-              [Final Cited Report + Optional Export]
-```
-
-### 🔄 Enhanced Workflow Process
-
-1. **Strategic Planning**: Advanced query analysis with explicit thinking processes and complexity assessment
-2. **Parallel Research**: Multiple `ResearchSubagent` workers with 3-loop search strategies execute concurrently
-3. **LLM-as-Judge Evaluation**: Sophisticated progress assessment identifies gaps and determines iteration needs
-4. **Professional Citation**: Enhanced processing with intelligent source descriptions and quality indicators
-5. **Export & Delivery**: Optional file export with customizable paths and comprehensive metadata
 
 ## 📦 Installation
 
-### Prerequisites
-
-- Python 3.10 or higher
-- API keys for Claude (Anthropic) and Exa search
-
-### Install with uv (Recommended)
-
-`uv` provides the fastest and most reliable package management experience:
-
 ```bash
-
 pip3 install -U advanced-research
 
-# OR UV
-uv pip install -U advanced-research
-
+# Or 
+# uv pip install -U swarms
 
 ```
 
@@ -124,22 +39,191 @@ OPENAI_API_KEY="your_openai_api_key_here"
 
 ## 🚀 Quick Start
 
+### Basic Usage
 
 ```python
-from advanced_research import AdvancedResearch
+from advanced_research.main import AdvancedResearch
 
-# Initialize the system
-research_system = AdvancedResearch(max_iterations=1)
-
-# Run research
-results = research_system.research(
-    "What are the latest developments in quantum computing?",
-    export=True,
-    export_path="quantum_computing_report.md",
+# Initialize the research system
+research_system = AdvancedResearch(
+    name="AI Research Team",
+    description="Specialized AI research system",
+    max_loops=1,
 )
 
-print(results)
+# Run research and get results
+result = research_system.run(
+    "What are the latest developments in quantum computing?"
+)
+print(result)
 ```
+
+### With Export Functionality
+
+```python
+from advanced_research.main import AdvancedResearch
+
+# Initialize with export enabled
+research_system = AdvancedResearch(
+    name="Quantum Computing Research",
+    description="Research team focused on quantum computing advances",
+    max_loops=1,
+    export_on=True,  # Enable JSON export
+)
+
+# Run research - will automatically export to JSON file
+research_system.run(
+    "What are the latest developments in quantum computing?"
+)
+# Results will be saved to a timestamped JSON file
+```
+
+### Advanced Configuration
+
+```python
+from advanced_research.main import AdvancedResearch
+
+# Initialize with custom settings
+research_system = AdvancedResearch(
+    name="Medical Research Team",
+    description="Specialized medical research system",
+    director_model_name="claude-3-5-sonnet-20250115",  # Use latest Claude model
+    worker_model_name="claude-3-5-sonnet-20250115",
+    director_max_tokens=10000,
+    max_loops=2,  # Multiple research iterations
+    output_type="all",  # Include full conversation history
+    export_on=True,
+)
+
+# Run research with image input (if applicable)
+result = research_system.run(
+    "What are the most effective treatments for Type 2 diabetes?",
+    img=None  # Optional image input
+)
+```
+
+### Batch Processing Multiple Queries
+
+```python
+from advanced_research.main import AdvancedResearch
+
+# Initialize the system
+research_system = AdvancedResearch(
+    name="Batch Research System",
+    max_loops=1,
+    export_on=True,
+)
+
+# Process multiple research tasks
+tasks = [
+    "Latest advances in renewable energy storage",
+    "Current state of autonomous vehicle technology",
+    "Recent breakthroughs in cancer immunotherapy"
+]
+
+# Run batch processing
+research_system.batched_run(tasks)
+```
+
+### Using Different Output Formats
+
+```python
+from advanced_research.main import AdvancedResearch
+
+# Initialize with specific output type
+research_system = AdvancedResearch(
+    name="Research System",
+    output_type="json",  # Options: "all", "json", "markdown"
+    export_on=False,  # Get results directly instead of exporting
+)
+
+# Run research and get formatted output
+result = research_system.run(
+    "What are the key challenges in AGI development?"
+)
+
+# Check available output methods
+available_formats = research_system.get_output_methods()
+print(f"Available output formats: {available_formats}")
+```
+
+## ✨ Key Features
+
+| Feature | Description |
+|---------|-------------|
+| **Orchestrator-Worker Architecture** | A `Director Agent` coordinates research strategy while specialized worker agents execute focused search tasks with Exa API integration. |
+| **Advanced Web Search Integration** | Utilizes `exa_search` with structured JSON responses, content summarization, and intelligent result extraction for comprehensive research. |
+| **High-Performance Parallel Execution** | Leverages `ThreadPoolExecutor` to run multiple specialized agents concurrently, achieving significant time reduction for complex queries. |
+| **Flexible Configuration** | Customizable model selection (Claude, GPT), token limits, loop counts, and output formatting options. |
+| **Conversation Management** | Built-in conversation history tracking with the `swarms` framework's `Conversation` class for persistent dialogue management. |
+| **Export Functionality** | JSON export with automatic timestamping, unique session IDs, and comprehensive conversation history. |
+| **Multiple Output Formats** | Support for various output types including JSON, markdown, and full conversation history formatting. |
+| **Session Management** | Unique session IDs, batch processing capabilities, and step-by-step research execution control. |
+
+## 🏗️ Architecture
+
+The system follows a streamlined orchestrator-worker pattern with parallel execution:
+
+```
+                [User Query + Configuration]
+                            │
+                            ▼
+           ┌─────────────────────────────────┐
+           │       AdvancedResearch          │ (Main Orchestrator)
+           │  - Session Management          │
+           │  - Conversation History        │
+           │  - Export Control              │
+           └─────────────────────────────────┘
+                            │ 1. Initialize Research Session
+                            ▼
+           ┌─────────────────────────────────┐
+           │      Director Agent             │ (Research Coordinator)
+           │  - Query Analysis & Planning    │
+           │  - Task Decomposition           │
+           │  - Research Strategy            │
+           └─────────────────────────────────┘
+                            │ 2. Decompose into Sub-Tasks
+                            ▼
+       ┌─────────────────────────────────────────┐
+       │     Parallel Worker Execution           │
+       │   (ThreadPoolExecutor - Concurrent)     │
+       └─────────────────────────────────────────┘
+          │           │           │           │
+          ▼           ▼           ▼           ▼
+    ┌──────────┐ ┌──────────┐ ┌──────────┐ ┌──────────┐
+    │Worker 1  │ │Worker 2  │ │Worker 3  │ │Worker N  │
+    │Exa Search│ │Exa Search│ │Exa Search│ │Exa Search│
+    │Integration│ │Integration│ │Integration│ │Integration│
+    └──────────┘ └──────────┘ └──────────┘ └──────────┘
+          │           │           │           │
+          ▼           ▼           ▼           ▼
+       ┌─────────────────────────────────────────┐
+       │      Results Aggregation                │
+       │  - Combine Worker Outputs               │
+       │  - Format Research Findings             │
+       └─────────────────────────────────────────┘
+                            │ 3. Synthesize Results
+                            ▼
+           ┌─────────────────────────────────┐
+           │    Conversation Management      │
+           │  - History Tracking             │
+           │  - Output Formatting            │
+           │  - Export Processing            │
+           └─────────────────────────────────┘
+                            │ 4. Deliver Results
+                            ▼
+              [Formatted Report + Optional JSON Export]
+```
+
+### 🔄 Workflow Process
+
+1. **Session Initialization**: `AdvancedResearch` creates a unique research session with conversation tracking
+2. **Director Agent Planning**: The director agent analyzes the query and plans research strategy
+3. **Parallel Worker Execution**: Multiple worker agents execute concurrent searches using Exa API
+4. **Results Aggregation**: Worker outputs are combined and synthesized into comprehensive findings
+5. **Output Processing**: Results are formatted according to specified output type (JSON, markdown, etc.)
+6. **Export & Delivery**: Optional JSON export with timestamped files and conversation history
+
 
 ## 🤝 Contributing
 
@@ -158,22 +242,9 @@ This implementation is part of the open-source `swarms` ecosystem. We welcome co
 git clone https://github.com/The-Swarm-Corporation/AdvancedResearch.git
 cd AdvancedResearch
 
-# Install development dependencies with uv (recommended)
-uv sync --dev
+uv venv
 
-# Run tests
-uv run pytest
-
-# Run linting
-uv run ruff check .
-uv run black --check .
-
-# Run type checking
-uv run mypy advanced_research/
-
-# Format code
-uv run black .
-uv run ruff check --fix .
+uv pip install -r requirements.txt
 ```
 
 ## 📄 License
