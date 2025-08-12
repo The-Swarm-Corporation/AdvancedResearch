@@ -1,13 +1,14 @@
-from advanced_research import AdvancedResearch
+from advanced_research.main import AdvancedResearch
 
-# Set up the research system with desired configuration
 research_system = AdvancedResearch(
-    max_iterations=1, max_search_results=2, max_subagent_iterations=1, max_workers=2
+    name="Medical Research Team",
+    description="A team of medical researchers who specialize in finding the best treatments for diabetes.",
+    max_loops=1,
+    # output_type="all",
+    # export_on=True,
+    export_on=True,
 )
 
-# Generate a report on the best treatments for diabetes
-report = research_system.research(
-    "Create a comprehensive report on the best treatments for diabetes"
+research_system.run(
+    "What are the latest and highest quality treatments for diabetes? Only provide 2 queries"
 )
-
-print(report)

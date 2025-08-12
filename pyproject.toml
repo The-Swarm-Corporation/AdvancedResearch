@@ -54,29 +54,28 @@ types-httpx = "*"
 
 
 
-[tool.mypy]
-python_version = "3.10"
-warn_return_any = true
-warn_unused_configs = true
-disallow_untyped_defs = true
-ignore_missing_imports = true
-
-[tool.black]
-line-length = 88
-target-version = ["py310"]
-preview = true
 
 [tool.ruff]
-line-length = 88
-target-version = "py310"
-select = ["E", "F", "I", "N", "W", "UP"]
-ignore = ["E501", "F401", "F403", "E402"]
+line-length = 70
 
-[tool.autopep8]
-max_line_length = 88
-ignore = "E501,W6"
-in-place = true
-recursive = true
-aggressive = 3
+[tool.black]
+target-version = ["py38"]
+line-length = 70
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | docs
+)/
+'''
+
 
 
