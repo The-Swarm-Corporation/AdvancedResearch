@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system,"](https://www.anthropic.com/engineering/built-multi-agent-research-system) using the `swarms` framework. This system achieves **90.2% performance improvement** over single-agent systems through advanced parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
+An enhanced implementation of the orchestrator-worker pattern from Anthropic's paper, ["How we built our multi-agent research system"](https://www.anthropic.com/engineering/built-multi-agent-research-system), built on top of the bleeding-edge multi-agent framework `swarms`. Our implementation of this advanced research system leverages parallel execution, LLM-as-judge evaluation, and professional report generation with export capabilities.
 
 
 
@@ -42,7 +42,7 @@ OPENAI_API_KEY="your_openai_api_key_here"
 ### Basic Usage
 
 ```python
-from advanced_research.main import AdvancedResearch
+from advanced_research import AdvancedResearch
 
 # Initialize the research system
 research_system = AdvancedResearch(
@@ -61,7 +61,7 @@ print(result)
 ### With Export Functionality
 
 ```python
-from advanced_research.main import AdvancedResearch
+from advanced_research import AdvancedResearch
 
 # Initialize with export enabled
 research_system = AdvancedResearch(
@@ -81,7 +81,7 @@ research_system.run(
 ### Advanced Configuration
 
 ```python
-from advanced_research.main import AdvancedResearch
+from advanced_research import AdvancedResearch
 
 # Initialize with custom settings
 research_system = AdvancedResearch(
@@ -105,7 +105,7 @@ result = research_system.run(
 ### Batch Processing Multiple Queries
 
 ```python
-from advanced_research.main import AdvancedResearch
+from advanced_research import AdvancedResearch
 
 # Initialize the system
 research_system = AdvancedResearch(
@@ -128,7 +128,7 @@ research_system.batched_run(tasks)
 ### Using Different Output Formats
 
 ```python
-from advanced_research.main import AdvancedResearch
+from advanced_research import AdvancedResearch
 
 # Initialize with specific output type
 research_system = AdvancedResearch(

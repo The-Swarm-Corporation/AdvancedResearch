@@ -6,7 +6,7 @@ research_system = AdvancedResearch(
     description="A team of medical researchers who specialize in finding the best treatments for diabetes.",
     max_loops=1,
     output_type="all",  # Include full conversation history
-    export_on=True,     # Enable JSON export
+    export_on=True,  # Enable JSON export
 )
 
 # Run research and get results
