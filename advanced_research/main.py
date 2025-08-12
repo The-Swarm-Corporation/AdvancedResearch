@@ -31,25 +31,34 @@ from pydantic import BaseModel, Field
 load_dotenv()
 
 
+model_name = os.getenv("WORKER_MODEL_NAME", "gpt-4.1")
+max_tokens = os.getenv("WORKER_MAX_TOKENS", 8000)
+exa_search_num_results = os.getenv("EXA_SEARCH_NUM_RESULTS", 2)
+exa_search_max_characters = os.getenv(
+    "EXA_SEARCH_MAX_CHARACTERS", 100
+)
+
+
 # Schema
 class AdvancedResearchAdditionalConfig(BaseModel):
     worker_model_name: str = Field(
-        default="gpt-4.1",
+        default=model_name,
         description="The model name to use for the worker agent.",
     )
     worker_max_tokens: int = Field(
-        default=8000,
+        default=max_tokens,
         description="The maximum number of tokens to use for the worker agent.",
     )
     exa_search_num_results: int = Field(
-        default=2,
+        default=exa_search_num_results,
         description="The number of results to return from the Exa search tool.",
     )
     exa_search_max_characters: int = Field(
-        default=100,
+        default=exa_search_max_characters,
         description="The maximum number of characters to return from the Exa search tool.",
     )
-    
+
+
 schema = AdvancedResearchAdditionalConfig()
 
 
