@@ -12,7 +12,7 @@ An enhanced implementation of the orchestrator-worker pattern from Anthropic's p
 
 
 
-## 📦 Installation
+## Installation
 
 ```bash
 pip3 install -U advanced-research
@@ -43,7 +43,7 @@ EXA_SEARCH_MAX_CHARACTERS=100
 
 **Note:** At minimum, you need `EXA_API_KEY` for web search functionality. For LLM functionality, you need either `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
 
-## 🚀 Quick Start
+## Quick Start
 
 ### Basic Usage
 
@@ -153,7 +153,7 @@ available_formats = research_system.get_output_methods()
 print(f"Available output formats: {available_formats}")
 ```
 
-## 📋 Quick Reference
+## Quick Reference
 
 | Task | Code | Documentation |
 |------|------|---------------|
@@ -163,7 +163,7 @@ print(f"Available output formats: {available_formats}")
 | **Custom Models** | `AdvancedResearch(director_model_name="model")` | [Advanced Config →](DOCS.md#advanced-multi-loop-research) |
 | **Output Formats** | `AdvancedResearch(output_type="json")` | [Output Types →](DOCS.md#types-and-enums) |
 
-## 🧪 Examples
+## Examples
 
 Ready-to-run examples demonstrating all features of the Advanced Research system:
 
@@ -191,9 +191,9 @@ python examples/export_example.py
 python examples/advanced_config.py
 ```
 
-**📖 [View All Examples →](examples/README.md)**
+**[View All Examples →](examples/README.md)**
 
-## ✨ Key Features
+## Key Features
 
 | Feature | Description |
 |---------|-------------|
@@ -206,7 +206,7 @@ python examples/advanced_config.py
 | **Multiple Output Formats** | Support for various output types including JSON, markdown, and full conversation history formatting. |
 | **Session Management** | Unique session IDs, batch processing capabilities, and step-by-step research execution control. |
 
-## 🏗️ Architecture
+## Architecture
 
 The system follows a streamlined orchestrator-worker pattern with parallel execution:
 
@@ -261,7 +261,7 @@ The system follows a streamlined orchestrator-worker pattern with parallel execu
               [Formatted Report + Optional JSON Export]
 ```
 
-### 🔄 Workflow Process
+### Workflow Process
 
 1. **Session Initialization**: `AdvancedResearch` creates a unique research session with conversation tracking
 2. **Director Agent Planning**: The director agent analyzes the query and plans research strategy
@@ -271,7 +271,7 @@ The system follows a streamlined orchestrator-worker pattern with parallel execu
 6. **Export & Delivery**: Optional JSON export with timestamped files and conversation history
 
 
-## 🤝 Contributing
+## Contributing
 
 This implementation is part of the open-source `swarms` ecosystem. We welcome contributions!
 
@@ -330,22 +330,22 @@ If you use this work in your research, please cite both the original paper and t
 }
 ```
 
-## 📚 Documentation
+## Documentation
 
 For comprehensive API documentation, examples, and advanced usage:
 
-**[📖 View Full API Documentation →](DOCS.md)**
+**[View Full API Documentation →](DOCS.md)**
 
-## 🔗 Related Work
+## Related Work
 
 - [Original Paper](https://www.anthropic.com/engineering/built-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
 - [Swarms Framework](https://github.com/kyegomez/swarms) - The underlying multi-agent AI orchestration framework
 
-## 📞 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/The-Swarm-Corporation/AdvancedResearch/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/The-Swarm-Corporation/AdvancedResearch/discussions)
-- **Discord**: [Join our community](https://discord.gg/EamjgSaEQf)
+- **Community**: [Join our Discord](https://discord.gg/EamjgSaEQf)
 
 <p align="center">
   <strong>Built with <a href="https://github.com/kyegomez/swarms">Swarms</a> framework for production-grade agentic applications </strong>

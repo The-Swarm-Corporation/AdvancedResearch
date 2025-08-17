@@ -2,7 +2,7 @@
 
 This directory contains comprehensive examples demonstrating how to use the Advanced Research system. All examples are designed to be simple and easy to understand, with no print statements.
 
-## 📚 Available Examples
+## Available Examples
 
 ### Basic Examples
 
@@ -22,7 +22,7 @@ This directory contains comprehensive examples demonstrating how to use the Adva
 - **[`multi_loop_research.py`](multi_loop_research.py)** - Iterative research with multiple loops
 - **[`session_management.py`](session_management.py)** - Session tracking and conversation management
 
-## 🚀 Quick Start
+## Quick Start
 
 To run any example:
 
@@ -37,7 +37,7 @@ python examples/export_example.py
 python examples/advanced_config.py
 ```
 
-## 🔧 Prerequisites
+## Prerequisites
 
 Before running the examples, make sure you have:
 
@@ -46,7 +46,7 @@ Before running the examples, make sure you have:
    - `EXA_API_KEY` (required for web search)
    - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (for LLM functionality)
 
-## 📖 Example Categories
+## Example Categories
 
 ### **Basic Research**
 Start with `basic_usage.py` to understand the fundamental workflow.
@@ -69,7 +69,7 @@ Learn iterative research with `multi_loop_research.py`.
 ### **Session Management**
 Understand conversation tracking with `session_management.py`.
 
-## 🎯 Use Cases
+## Use Cases
 
 These examples cover common research scenarios:
 
@@ -79,7 +79,7 @@ These examples cover common research scenarios:
 - **Scientific Research** - Current developments and breakthroughs
 - **Content Creation** - Research for articles, reports, and presentations
 
-## 🔍 Customization
+## Customization
 
 Each example can be customized by:
 
@@ -89,7 +89,7 @@ Each example can be customized by:
 - Enabling/disabling export functionality
 - Adjusting the number of research loops
 
-## 📝 Notes
+## Notes
 
 - All examples return results rather than printing them
 - Examples are designed to be run independently
@@ -97,7 +97,7 @@ Each example can be customized by:
 - Results can be stored in variables for further processing
 - Export examples automatically save results to timestamped JSON files
 
-## 🤝 Contributing
+## Contributing
 
 Feel free to create additional examples or modify existing ones to suit your specific needs. Each example should:
 
