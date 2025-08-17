@@ -20,20 +20,28 @@ pip3 install -U advanced-research
 # uv pip install -U advanced-research
 ```
 
-### Environment Setup
-
-Create a `.env` file in your project root:
+## Environment Variables
 
 ```bash
-# Claude API Key (Primary LLM)
-ANTHROPIC_API_KEY="your_anthropic_api_key_here"
-
-# Exa Search API Key
+# Exa Search API Key (Required for web search functionality)
 EXA_API_KEY="your_exa_api_key_here"
 
-# Optional: OpenAI API Key (alternative LLM)
+# Anthropic API Key (For Claude models)
+ANTHROPIC_API_KEY="your_anthropic_api_key_here"
+
+# OpenAI API Key (For GPT models)  
 OPENAI_API_KEY="your_openai_api_key_here"
+
+# Worker Agent Configuration
+WORKER_MODEL_NAME="gpt-4.1"
+WORKER_MAX_TOKENS=8000
+
+# Exa Search Configuration
+EXA_SEARCH_NUM_RESULTS=2
+EXA_SEARCH_MAX_CHARACTERS=100
 ```
+
+**Note:** At minimum, you need `EXA_API_KEY` for web search functionality. For LLM functionality, you need either `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
 
 ## 🚀 Quick Start
 
@@ -253,6 +261,10 @@ cd AdvancedResearch
 uv venv
 
 uv pip install -r requirements.txt
+
+# Setup environment variables
+cp .env.example .env
+# Edit .env with your API keys
 ```
 
 ## 📄 License

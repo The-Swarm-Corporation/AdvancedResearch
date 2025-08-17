@@ -564,7 +564,7 @@ The system includes built-in error handling for:
 
 **Common Error Scenarios:**
 
-1. **Missing API Keys**: Ensure `EXA_API_KEY` and `ANTHROPIC_API_KEY` are set
+1. **Missing API Keys**: Ensure `EXA_API_KEY` is set (required), and either `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` for LLM functionality
 2. **Network Connectivity**: Check internet connection for Exa searches
 3. **Model Limits**: Adjust `max_tokens` if hitting model limits
 4. **Invalid Output Types**: Use only supported `HistoryOutputType` values
@@ -611,22 +611,37 @@ except OSError as e:
 
 ## Environment Variables
 
-Required environment variables:
+**Required Environment Variables:**
 
 ```bash
-# Required API Keys
-ANTHROPIC_API_KEY="your_anthropic_api_key"
+# Exa Search API Key (Required for web search functionality)
 EXA_API_KEY="your_exa_api_key"
+```
 
-# Optional API Keys
+**Optional Environment Variables:**
+
+```bash
+# Anthropic API Key (For Claude models)
+ANTHROPIC_API_KEY="your_anthropic_api_key"
+
+# OpenAI API Key (For GPT models)
 OPENAI_API_KEY="your_openai_api_key"
 
-# Worker Agent Configuration (Optional)
+# Worker Agent Configuration
 WORKER_MODEL_NAME="gpt-4.1"                    # Default model for worker agents
-WORKER_MAX_TOKENS="8000"                       # Max tokens for worker responses
-EXA_SEARCH_NUM_RESULTS="2"                     # Number of Exa search results
-EXA_SEARCH_MAX_CHARACTERS="100"                # Max characters per search result
+WORKER_MAX_TOKENS=8000                         # Max tokens for worker responses
+
+# Exa Search Configuration
+EXA_SEARCH_NUM_RESULTS=2                       # Number of Exa search results
+EXA_SEARCH_MAX_CHARACTERS=100                  # Max characters per search result
 ```
+
+**Note:** At minimum, you need `EXA_API_KEY` for web search functionality. For LLM functionality, you need either `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`.
+
+**Setup Instructions:**
+1. Copy `.env.example` to `.env`: `cp .env.example .env`
+2. Edit `.env` with your actual API keys
+3. Never commit `.env` files to version control
 
 ## File Outputs
 

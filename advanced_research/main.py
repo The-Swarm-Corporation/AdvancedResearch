@@ -24,7 +24,6 @@ from advanced_research.prompts import (
     get_orchestrator_prompt,
     get_synthesis_prompt,
 )
-from swarms import AgentJudge
 
 load_dotenv()
 
@@ -556,71 +555,6 @@ class AdvancedResearch:
             server_port=server_port,
             **kwargs,
         )
-
-    def api(
-        self,
-        host: str = "127.0.0.1",
-        port: int = 8000,
-        reload: bool = False,
-        **kwargs,
-    ):
-        """
-        Deploy the Advanced Research system as a REST API using FastAPI.
-        
-        This method launches a FastAPI server that provides HTTP endpoints
-        for conducting research tasks, batch processing, and system information.
-        
-        Args:
-            host (str): Server host address. Default is "127.0.0.1".
-            port (int): Server port. Default is 8000.
-            reload (bool): Enable auto-reload for development. Default is False.
-            **kwargs: Additional arguments to pass to uvicorn.run().
-            
-        Available Endpoints:
-            - GET /: Root endpoint with API information
-            - GET /health: Health check endpoint
-            - POST /research: Conduct a single research task
-            - POST /research/batch: Conduct multiple research tasks
-            - GET /research/methods: Get available output methods
-            - GET /system/info: Get system configuration info
-            - GET /docs: Interactive API documentation (Swagger UI)
-            - GET /redoc: Alternative API documentation (ReDoc)
-            
-        Example Usage:
-            # Start the API server
-            research_system = AdvancedResearch(name="My Research API")
-            research_system.api(host="0.0.0.0", port=8080)
-            
-            # Make requests to the API
-            curl -X POST "http://localhost:8080/research" \
-                 -H "Content-Type: application/json" \
-                 -d '{"task": "What are the latest AI trends?"}'
-        """
-        try:
-            from advanced_research.api import run_api_server
-
-            logger.info(f"Deploying {self.name} as REST API...")
-            logger.info(
-                f"API will be available at: http://{host}:{port}"
-            )
-            logger.info(
-                f"Interactive docs: http://{host}:{port}/docs"
-            )
-
-            # Launch the API server
-            run_api_server(
-                research_system=self,
-                host=host,
-                port=port,
-                reload=reload,
-                **kwargs,
-            )
-
-        except Exception as e:
-            logger.error(
-                f"Error deploying {self.name} as REST API: {e}"
-            )
-            raise e
 
     def get_output_methods(self):
         """
