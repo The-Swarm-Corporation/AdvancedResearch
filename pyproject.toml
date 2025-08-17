@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "advanced_research"
-version = "0.1.5"
+version = "0.1.6"
 description = "Advanced Multi-Agent Research System - Enhanced implementation of Anthropic's orchestrator-worker pattern with 90.2% performance improvement over single-agent systems"
 license = "MIT"
 authors = ["Kye Gomez <kye@swarms.world>"]
