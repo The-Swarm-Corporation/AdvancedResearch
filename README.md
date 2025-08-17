@@ -163,6 +163,36 @@ print(f"Available output formats: {available_formats}")
 | **Custom Models** | `AdvancedResearch(director_model_name="model")` | [Advanced Config →](DOCS.md#advanced-multi-loop-research) |
 | **Output Formats** | `AdvancedResearch(output_type="json")` | [Output Types →](DOCS.md#types-and-enums) |
 
+## 🧪 Examples
+
+Ready-to-run examples demonstrating all features of the Advanced Research system:
+
+| Example | Description | File |
+|---------|-------------|------|
+| **Basic Usage** | Simple research with minimal configuration | [`examples/basic_usage.py`](examples/basic_usage.py) |
+| **Export Functionality** | Save research results to JSON files | [`examples/export_example.py`](examples/export_example.py) |
+| **Advanced Configuration** | Custom models, tokens, and multiple loops | [`examples/advanced_config.py`](examples/advanced_config.py) |
+| **Custom Models** | Different AI model configurations | [`examples/custom_models.py`](examples/custom_models.py) |
+| **Output Formats** | JSON, markdown, and conversation history | [`examples/output_formats.py`](examples/output_formats.py) |
+| **Batch Processing** | Process multiple queries efficiently | [`examples/batch_processing.py`](examples/batch_processing.py) |
+| **Multi-Loop Research** | Iterative research with refinement | [`examples/multi_loop_research.py`](examples/multi_loop_research.py) |
+| **Session Management** | Conversation tracking and persistence | [`examples/session_management.py`](examples/session_management.py) |
+| **Chat Interface** | Interactive web-based chat demo | [`examples/chat_demo.py`](examples/chat_demo.py) |
+
+**Quick Start Examples:**
+```bash
+# Basic research
+python examples/basic_usage.py
+
+# With export functionality  
+python examples/export_example.py
+
+# Advanced configuration
+python examples/advanced_config.py
+```
+
+**📖 [View All Examples →](examples/README.md)**
+
 ## ✨ Key Features
 
 | Feature | Description |
