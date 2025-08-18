@@ -4,7 +4,6 @@ import uuid
 from datetime import datetime
 from typing import Any, List, Optional
 
-import gradio as gr
 import httpx
 import orjson
 from dotenv import load_dotenv
@@ -341,7 +340,6 @@ class AdvancedResearch:
         max_loops: int = 1,
         export_on: bool = False,
         director_max_loops: int = 1,
-        chat_interface: bool = False,
     ):
         """
         Initialize the AdvancedResearch system.
@@ -358,7 +356,6 @@ class AdvancedResearch:
             max_loops (int): Number of research loops to run.
             export_on (bool): Whether to export conversation history to a JSON file.
             director_max_loops (int): Maximum loops for the director agent.
-            chat_interface (bool): Whether to launch a Gradio chat interface instead of running directly.
         """
         self.id = id
         self.name = name
@@ -371,7 +368,6 @@ class AdvancedResearch:
         self.max_loops = max_loops
         self.export_on = export_on
         self.director_max_loops = director_max_loops
-        self.chat_interface = chat_interface
 
         self.conversation = Conversation(
             name=f"conversation-{self.id}"
@@ -402,47 +398,36 @@ class AdvancedResearch:
         return output
 
     def run(
-        self, task: str = None, img: Optional[str] = None, **kwargs
+        self,
+        task: Optional[str] = None,
+        img: Optional[str] = None,
+        **kwargs,
     ):
         """
-        Run the advanced research system. If chat_interface=True, launches a Gradio chat interface.
-        Otherwise, runs the research system for the specified number of loops,
+        Run the advanced research system. Runs the research system for the specified number of loops,
         maintaining conversation history across all iterations.
 
         Args:
-            task (str, optional): The research task to execute. Not required when chat_interface=True.
+            task (str, optional): The research task to execute.
             img (Optional[str]): Optional image input.
-            **kwargs: Additional arguments to pass to launch_chat_interface() when using chat interface.
 
         Returns:
             str or list: Formatted conversation history containing all loop iterations,
                          or exports the conversation to a JSON file if export_on is True.
                          Returns None when launching chat interface.
         """
-        if self.chat_interface:
-            # Launch the Gradio chat interface
-            self.launch_chat_interface(**kwargs)
-            return None
-
         if task is None:
             raise ValueError(
-                "task argument is required when chat_interface=False"
+                "task argument is required to run the research system"
             )
 
         self.conversation.add("human", task)
 
         self.step(task, img)
 
-        if self.export_on:
-            create_json_file(
-                data=self.conversation.return_messages_as_dictionary(),
-                file_name=f"{self.id}.json",
-            )
-        else:
-            # Return the complete conversation history from all loops
-            return history_output_formatter(
-                conversation=self.conversation, type=self.output_type
-            )
+        return history_output_formatter(
+            conversation=self.conversation, type=self.output_type
+        )
 
     def batched_run(self, tasks: List[str]):
         """
@@ -483,78 +468,6 @@ class AdvancedResearch:
         except Exception as e:
             logger.error(f"Error in chat response: {e}")
             return f"I apologize, but I encountered an error while processing your research request: {str(e)}"
-
-    def create_gradio_interface(self):
-        """
-        Create and return a Gradio chat interface for the research system.
-
-        Returns:
-            gr.Interface: The configured Gradio interface.
-        """
-        if gr is None:
-            raise ImportError(
-                "Gradio is not installed. Please install it with: pip install gradio"
-            )
-
-        # Create the chat interface
-        interface = gr.ChatInterface(
-            fn=self.chat_response,
-            title=self.name,
-            description=self.description,
-            examples=[
-                "What are the latest advances in quantum computing?",
-                "Research the most effective treatments for diabetes",
-                "What are the current trends in artificial intelligence?",
-                "Find information about renewable energy technologies",
-                "What are the latest developments in space exploration?",
-            ],
-            chatbot=gr.Chatbot(
-                height=600,
-                placeholder="Ask me any research question and I'll provide comprehensive findings using advanced AI agents.",
-            ),
-            textbox=gr.Textbox(
-                placeholder="Enter your research question here...",
-                container=False,
-                scale=7,
-            ),
-        )
-
-        return interface
-
-    def launch_chat_interface(
-        self,
-        share: bool = False,
-        server_name: str = "127.0.0.1",
-        server_port: int = 7860,
-        **kwargs,
-    ):
-        """
-        Launch the Gradio chat interface.
-
-        Args:
-            share (bool): Whether to create a public link. Default is False.
-            server_name (str): Server host. Default is "127.0.0.1".
-            server_port (int): Server port. Default is 7860.
-            **kwargs: Additional arguments to pass to gradio.launch().
-        """
-        if gr is None:
-            raise ImportError(
-                "Gradio is not installed. Please install it with: pip install gradio"
-            )
-
-        interface = self.create_gradio_interface()
-
-        logger.info(f"Launching {self.name} chat interface...")
-        logger.info(
-            f"Access the interface at: http://{server_name}:{server_port}"
-        )
-
-        interface.launch(
-            share=share,
-            server_name=server_name,
-            server_port=server_port,
-            **kwargs,
-        )
 
     def get_output_methods(self):
         """
