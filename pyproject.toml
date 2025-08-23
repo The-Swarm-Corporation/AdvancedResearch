@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "advanced_research"
-version = "0.1.8"
+version = "0.2.0"
 description = "Advanced Multi-Agent Research System - Enhanced implementation of Anthropic's orchestrator-worker pattern with 90.2% performance improvement over single-agent systems"
 license = "MIT"
 authors = ["Kye Gomez <kye@swarms.world>"]
@@ -45,7 +45,7 @@ loguru = "*"
 pydantic = "*"
 httpx = "*"
 orjson = "*"
-gradio = "*"
+swarms-tools = "*"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"

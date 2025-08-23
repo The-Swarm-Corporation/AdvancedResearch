@@ -5,7 +5,7 @@ httpx
 python-dotenv
 requests
 orjson
-gradio
 uvicorn
 black
 ruff
+swarms-tools
