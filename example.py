@@ -7,12 +7,12 @@ research_system = AdvancedResearch(
     description="A team of medical researchers who specialize in finding the best treatments for diabetes.",
     max_loops=1,
     output_type="dict",
-    director_model_name="claude-3-7-sonnet-20250219",
-    worker_model_name="claude-3-7-sonnet-20250219",
+    director_model_name="gpt-4.1",
+    worker_model_name="gpt-5.4-mini",
 )
 
 # Run research and get results
 result = research_system.run(
-    "What are the latest and highest quality treatments for diabetes? Give me 2 queries"
+    "What are the latest and highest quality treatments for diabetes?"
 )
 print(json.dumps(result, indent=4))

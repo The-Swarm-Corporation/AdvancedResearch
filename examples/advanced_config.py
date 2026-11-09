@@ -16,9 +16,9 @@ def advanced_research():
     research_system = AdvancedResearch(
         name="Advanced Research Team",
         description="Specialized research system with advanced configuration",
-        director_model_name="claude-3-5-sonnet-20250115",
-        worker_model_name="claude-3-5-sonnet-20250115",
-        director_max_tokens=10000,
+        director_model_name="claude-sonnet-5-5",
+        worker_model_name="gpt-5.4-mini",
+        director_max_tokens=4000,
         max_loops=2,  # Multiple research iterations
         output_type="all",  # Include full conversation history
         export_on=True,

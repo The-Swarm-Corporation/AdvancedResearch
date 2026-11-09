@@ -43,8 +43,8 @@ Before running the examples, make sure you have:
 
 1. **Installed the package**: `pip install advanced-research`
 2. **Set up API keys** in environment variables:
-   - `EXA_API_KEY` (required for web search)
-   - `ANTHROPIC_API_KEY` or `OPENAI_API_KEY` (for LLM functionality)
+   - `SWARMS_API_KEY` (required: every agent runs on the Swarms API)
+   - `EXA_API_KEY` (required: web search)
 
 ## Example Categories
 

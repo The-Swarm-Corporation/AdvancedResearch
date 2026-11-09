@@ -1,496 +1,332 @@
-#!/usr/bin/env python3
-"""
-Unit tests for main.py - Advanced Research System
-Tests all functions and methods individually without using pytest or unittest
-"""
+"""Offline tests for advanced_research.main. The Swarms API and Exa are
+replaced with fakes, so no keys or network are needed."""
 
-import os
-import tempfile
-from unittest.mock import Mock, patch
-import sys
-from loguru import logger
+import json
 
+import httpx
+import pytest
 
+import advanced_research.main as m
 from advanced_research.main import (
-    generate_id,
-    create_json_file,
-    summarization_agent,
-    run_agent,
-    execute_worker_search_agents,
-    create_director_agent,
     AdvancedResearch,
     AdvancedResearchAdditionalConfig,
-    schema,
-    model_name,
-    director_model_name,
-    max_tokens,
-    exa_search_num_results,
-    exa_search_max_characters,
+    ResearchAPIError,
+    SourceRegistry,
+    _parse_json,
+    _split_report,
+    build_references,
+    create_json_file,
+    execute_worker_search_agents,
+    generate_id,
+    run_agent,
 )
 
 
-def test_generate_id():
-    """Test the generate_id function"""
-    logger.info("Testing generate_id...")
-
-    # Test that it generates a unique ID
-    id1 = generate_id()
-    id2 = generate_id()
-
-    assert id1 != id2, "Generated IDs should be unique"
-    assert isinstance(id1, str), "Generated ID should be a string"
-    assert id1.startswith(
-        "AdvancedResearch-"
-    ), "ID should start with 'AdvancedResearch-'"
-    assert "-time-" in id1, "ID should contain '-time-'"
-
-    # Test that it contains a timestamp
-    timestamp_part = id1.split("-time-")[1]
-    assert (
-        len(timestamp_part) == 14
-    ), "Timestamp should be 14 characters (YYYYMMDDHHMMSS)"
-
-    logger.success("✓ generate_id test passed")
-
-
-def test_create_json_file():
-    """Test the create_json_file function"""
-    logger.info("Testing create_json_file...")
-
-    # Test creating a new file
-    with tempfile.NamedTemporaryFile(
-        mode="w", delete=False, suffix=".json"
-    ) as temp_file:
-        temp_path = temp_file.name
-
-    try:
-        test_data = {"test": "data", "number": 42}
-        create_json_file(test_data, temp_path)
-
-        # Verify file was created and contains correct data
-        with open(temp_path, "rb") as f:
-            import orjson
-
-            loaded_data = orjson.loads(f.read())
-
-        assert (
-            loaded_data == test_data
-        ), "File should contain the correct data"
-
-        # Test updating existing file
-        update_data = {"additional": "info", "test": "updated"}
-        create_json_file(update_data, temp_path)
+def make_result(url, title="Title", text="Page text"):
+    return {
+        "url": url,
+        "title": title,
+        "published_date": "2026-01-02",
+        "text": text,
+        "highlights": [text[:20]],
+    }
 
-        with open(temp_path, "rb") as f:
-            updated_data = orjson.loads(f.read())
-
-        expected_data = {
-            "test": "updated",
-            "number": 42,
-            "additional": "info",
-        }
-        assert (
-            updated_data == expected_data
-        ), "File should be updated correctly"
 
-    finally:
-        # Clean up
-        if os.path.exists(temp_path):
-            os.unlink(temp_path)
+@pytest.fixture(autouse=True)
+def keys(monkeypatch):
+    monkeypatch.setenv("SWARMS_API_KEY", "sk-test")
+    monkeypatch.setenv("EXA_API_KEY", "exa-test")
 
-    logger.success("✓ create_json_file test passed")
 
+def test_generate_id_is_unique_and_timestamped():
+    first, second = generate_id(), generate_id()
+    assert first != second
+    assert first.startswith("AdvancedResearch-")
+    assert len(first.split("-time-")[1]) == 14
 
-@patch("advanced_research.main.Agent")
-def test_summarization_agent(mock_agent_class):
-    """Test the summarization_agent function"""
-    logger.info("Testing summarization_agent...")
 
-    # Mock the agent instance
-    mock_agent_instance = Mock()
-    mock_agent_instance.run.return_value = "Test summary"
-    mock_agent_class.return_value = mock_agent_instance
-
-    # Test basic functionality
-    result = summarization_agent(
-        model_name="test-model", task="Test task", max_tokens=1000
-    )
-
-    # Verify agent was created with correct parameters
-    mock_agent_class.assert_called_once()
-    call_args = mock_agent_class.call_args
-    assert call_args[1]["agent_name"] == "Report-Generator-Agent"
-    assert call_args[1]["model_name"] == "test-model"
-    assert call_args[1]["max_loops"] == 1
-    assert call_args[1]["max_tokens"] == 1000
-
-    # Verify agent was run
-    mock_agent_instance.run.assert_called_once_with(
-        task="Test task", img=None
-    )
-
-    # Verify return value
-    assert result == "Test summary"
+def test_each_instance_gets_its_own_id():
+    assert AdvancedResearch().id != AdvancedResearch().id
 
-    logger.success("✓ summarization_agent test passed")
 
+def test_create_json_file_merges_into_existing_object(tmp_path):
+    path = tmp_path / "out.json"
+    create_json_file({"a": 1}, str(path))
+    create_json_file({"b": 2}, str(path))
+    assert json.loads(path.read_text()) == {"a": 1, "b": 2}
 
-@patch("advanced_research.main.Agent")
-def test_run_agent(mock_agent_class):
-    """Test the run_agent function"""
-    logger.info("Testing run_agent...")
 
-    # Mock the agent instance
-    mock_agent_instance = Mock()
-    mock_agent_instance.run.return_value = "Agent output"
-    mock_agent_class.return_value = mock_agent_instance
+def test_parse_json_reads_fenced_and_bare_objects():
+    assert _parse_json('```json\n{"a": 1}\n```') == {"a": 1}
+    assert _parse_json('Here it is: {"b": [1, 2]} done') == {
+        "b": [1, 2]
+    }
+    assert _parse_json("no json here") is None
 
-    # Test basic functionality
-    result = run_agent(1, "Test query")
-
-    # Verify agent was created with correct parameters
-    mock_agent_class.assert_called_once()
-    call_args = mock_agent_class.call_args
-    assert call_args[1]["agent_name"] == "Worker-Search-Agent-1"
-    assert call_args[1]["model_name"] == schema.worker_model_name
-    assert call_args[1]["max_loops"] == 1
-    assert call_args[1]["max_tokens"] == schema.worker_max_tokens
-    assert call_args[1]["tool_call_summary"]
-
-    # Verify agent was run
-    mock_agent_instance.run.assert_called_once_with(task="Test query")
-
-    # Verify return value
-    assert result == "Agent output"
-
-    logger.success("✓ run_agent test passed")
-
-
-@patch("advanced_research.main.run_agent")
-def test_execute_worker_search_agents(mock_run_agent):
-    """Test the execute_worker_search_agents function"""
-    logger.info("Testing execute_worker_search_agents...")
-
-    # Mock the run_agent function to return different outputs
-    mock_run_agent.side_effect = ["Output 1", "Output 2", "Output 3"]
-
-    queries = ["Query 1", "Query 2", "Query 3"]
-    result = execute_worker_search_agents(queries)
-
-    # Verify run_agent was called for each query
-    assert mock_run_agent.call_count == 3
-
-    # Verify the calls were made with correct parameters
-    expected_calls = [(0, "Query 1"), (1, "Query 2"), (2, "Query 3")]
-    actual_calls = [call[0] for call in mock_run_agent.call_args_list]
-    assert actual_calls == expected_calls
-
-    # Verify result is concatenated outputs
-    assert result == "Output 1 Output 2 Output 3"
-
-    logger.success("✓ execute_worker_search_agents test passed")
-
-
-@patch("advanced_research.main.Agent")
-def test_create_director_agent(mock_agent_class):
-    """Test the create_director_agent function"""
-    logger.info("Testing create_director_agent...")
-
-    # Mock the agent instance
-    mock_agent_instance = Mock()
-    mock_agent_instance.run.return_value = "Director output"
-    mock_agent_class.return_value = mock_agent_instance
-
-    # Test basic functionality
-    result = create_director_agent(
-        agent_name="Test-Director",
-        model_name="test-model",
-        task="Test task",
-        max_tokens=4000,
-        max_loops=2,
-    )
-
-    # Verify agent was created with correct parameters
-    mock_agent_class.assert_called_once()
-    call_args = mock_agent_class.call_args
-    assert call_args[1]["agent_name"] == "Test-Director"
-    assert call_args[1]["model_name"] == "test-model"
-    assert call_args[1]["max_loops"] == 2
-    assert call_args[1]["max_tokens"] == 4000
-    assert call_args[1]["tool_call_summary"]
-
-    # Verify agent was run
-    mock_agent_instance.run.assert_called_once_with(
-        task="Test task", img=None
-    )
-
-    # Verify return value
-    assert result == "Director output"
-
-    logger.success("✓ create_director_agent test passed")
-
-
-def test_advanced_research_initialization():
-    """Test AdvancedResearch class initialization"""
-    logger.info("Testing AdvancedResearch initialization...")
-
-    # Test with default parameters
-    research = AdvancedResearch()
-
-    assert research.name == "Advanced Research"
-    assert research.description == "Advanced Research"
-    assert research.worker_model_name == model_name
-    assert research.director_agent_name == "Director-Agent"
-    assert research.director_model_name == director_model_name
-    assert research.director_max_tokens == 8000
-    assert research.output_type == "final"
-    assert research.max_loops == 1
-    assert not research.export_on
-    assert research.director_max_loops == 1
-    assert research.id.startswith("AdvancedResearch-")
-    assert research.conversation is not None
-
-    # Test with custom parameters
-    custom_research = AdvancedResearch(
-        id="custom-id",
-        name="Custom Research",
-        description="Custom Description",
-        worker_model_name="custom-worker",
-        director_agent_name="Custom-Director",
-        director_model_name="custom-director",
-        director_max_tokens=4000,
-        output_type="all",
-        max_loops=3,
-        export_on=True,
-        director_max_loops=2,
-    )
-
-    assert custom_research.id == "custom-id"
-    assert custom_research.name == "Custom Research"
-    assert custom_research.description == "Custom Description"
-    assert custom_research.worker_model_name == "custom-worker"
-    assert custom_research.director_agent_name == "Custom-Director"
-    assert custom_research.director_model_name == "custom-director"
-    assert custom_research.director_max_tokens == 4000
-    assert custom_research.output_type == "all"
-    assert custom_research.max_loops == 3
-    assert custom_research.export_on
-    assert custom_research.director_max_loops == 2
-
-    logger.success("✓ AdvancedResearch initialization test passed")
-
-
-@patch("advanced_research.main.create_director_agent")
-def test_advanced_research_step(mock_create_director):
-    """Test AdvancedResearch.step method"""
-    logger.info("Testing AdvancedResearch.step...")
-
-    mock_create_director.return_value = "Step output"
-
-    research = AdvancedResearch()
-    result = research.step("Test task")
-
-    # Verify create_director_agent was called with correct parameters
-    mock_create_director.assert_called_once_with(
-        agent_name=research.director_agent_name,
-        model_name=research.director_model_name,
-        task="Test task",
-        max_tokens=research.director_max_tokens,
-        img=None,
-    )
-
-    # Verify result
-    assert result == "Step output"
-
-    # Verify conversation was updated
-    assert len(research.conversation.get_history()) == 1
-    last_message = research.conversation.get_final_message()
-    assert last_message == "Step output"
-
-    logger.success("✓ AdvancedResearch.step test passed")
-
-
-@patch("advanced_research.main.create_director_agent")
-def test_advanced_research_run(mock_create_director):
-    """Test AdvancedResearch.run method"""
-    logger.info("Testing AdvancedResearch.run...")
-
-    mock_create_director.return_value = "Research output"
-
-    research = AdvancedResearch(max_loops=2)
-    result = research.run("Test research task")
-
-    # Verify create_director_agent was called twice (for 2 loops)
-    assert mock_create_director.call_count == 2
-
-    # Verify conversation was updated
-    assert (
-        len(research.conversation.get_history()) == 3
-    )  # human + 2 agent responses
-
-    # Verify result is formatted
-    assert result is not None
-
-    # Test with None task (should raise ValueError)
-    research2 = AdvancedResearch()
-    try:
-        research2.run(None)
-        assert False, "Should have raised ValueError for None task"
-    except ValueError as e:
-        assert "task argument is required" in str(e)
-
-    logger.success("✓ AdvancedResearch.run test passed")
-
-
-@patch("advanced_research.main.create_director_agent")
-def test_advanced_research_batched_run(mock_create_director):
-    """Test AdvancedResearch.batched_run method"""
-    logger.info("Testing AdvancedResearch.batched_run...")
-
-    mock_create_director.return_value = "Batch output"
-
-    research = AdvancedResearch()
-    tasks = ["Task 1", "Task 2", "Task 3"]
-
-    # This should not raise an error
-    research.batched_run(tasks)
-
-    # Verify create_director_agent was called for each task
-    assert mock_create_director.call_count == 3
-
-    logger.success("✓ AdvancedResearch.batched_run test passed")
-
-
-@patch("advanced_research.main.create_json_file")
-@patch("advanced_research.main.os.makedirs")
-def test_advanced_research_export_conversation(
-    mock_makedirs, mock_create_json_file
+
+def test_split_report_reads_the_trailing_decision():
+    text = 'Report [1]\n\n```json\n{"needs_more_research": true, "gaps": ["g1"]}\n```'
+    assert _split_report(text) == ("Report [1]", True, ["g1"])
+    assert _split_report("Report only") == ("Report only", False, [])
+
+
+def test_source_registry_numbers_each_url_once():
+    registry = SourceRegistry()
+    assert registry.add(make_result("https://a")) == 1
+    assert registry.add(make_result("https://b")) == 2
+    assert registry.add(make_result("https://a")) == 1
+    assert "[2] Title (2026-01-02)" in registry.format([2])
+
+
+def test_references_list_only_known_cited_sources():
+    registry = SourceRegistry()
+    registry.add(make_result("https://a", "A"))
+    registry.add(make_result("https://b", "B"))
+    references = build_references("x [2] y [9] z [2]", registry)
+    assert references == "[2] B, 2026-01-02. https://b"
+
+
+def test_swarms_agent_sends_the_agent_config_and_reads_its_reply(
+    monkeypatch,
 ):
-    """Test AdvancedResearch._export_conversation method"""
-    logger.info("Testing AdvancedResearch._export_conversation...")
+    sent = {}
 
-    # Test with export_on = True
-    research = AdvancedResearch(export_on=True)
-    research.conversation.add("test", "test message")
+    def fake_post(url, headers, json, timeout):
+        sent.update(url=url, headers=headers, body=json)
+        return httpx.Response(
+            200,
+            json={
+                "outputs": [
+                    {"role": "user", "content": "task"},
+                    {"role": "Planner", "content": [{"tool": 1}]},
+                    {"role": "Planner", "content": "the answer"},
+                ],
+                "usage": {"total_cost": 0.01},
+            },
+        )
 
-    research._export_conversation()
-
-    # Verify makedirs was called
-    mock_makedirs.assert_called_once()
-
-    # Verify create_json_file was called
-    mock_create_json_file.assert_called_once()
-    call_args = mock_create_json_file.call_args[0]
-    assert call_args[1].endswith(f"{research.id}.json")
-
-    # Test with export_on = False
-    research2 = AdvancedResearch(export_on=False)
-    research2._export_conversation()
-
-    # Should not call create_json_file
-    assert (
-        mock_create_json_file.call_count == 1
-    )  # Only from first call
-
-    logger.success(
-        "✓ AdvancedResearch._export_conversation test passed"
+    monkeypatch.setattr(m.httpx, "post", fake_post)
+    text, cost = m.swarms_agent(
+        "Planner", "sys", "task", model_name="gpt-4.1", max_tokens=50
     )
+    assert (text, cost) == ("the answer", 0.01)
+    assert sent["url"].endswith("/v1/agent/completions")
+    assert sent["headers"]["x-api-key"] == "sk-test"
+    assert sent["body"]["agent_config"]["model_name"] == "gpt-4.1"
+    assert sent["body"]["agent_config"]["max_tokens"] == 50
 
 
-def test_advanced_research_get_output_methods():
-    """Test AdvancedResearch.get_output_methods method"""
-    logger.info("Testing AdvancedResearch.get_output_methods...")
+def test_missing_key_is_a_clear_error(monkeypatch):
+    monkeypatch.delenv("SWARMS_API_KEY")
+    with pytest.raises(ResearchAPIError, match="SWARMS_API_KEY"):
+        m.swarms_agent("A", "sys", "task")
 
-    research = AdvancedResearch()
-    output_methods = research.get_output_methods()
 
-    # Verify it returns a list
-    assert isinstance(output_methods, list)
-
-    # Verify it contains expected output types
-    expected_types = ["final", "all", "last"]
-    for output_type in expected_types:
-        assert output_type in output_methods
-
-    logger.success(
-        "✓ AdvancedResearch.get_output_methods test passed"
+def test_gateway_timeout_is_not_retried(monkeypatch):
+    calls = []
+    clock = iter([0.0, 30.0])
+    monkeypatch.setattr(m.time, "monotonic", lambda: next(clock))
+    monkeypatch.setattr(
+        m.httpx,
+        "post",
+        lambda *a, **k: calls.append(1) or httpx.Response(503),
     )
+    with pytest.raises(ResearchAPIError, match="30-second"):
+        m.swarms_agent("A", "sys", "task")
+    assert len(calls) == 1
 
 
-def test_advanced_research_additional_config():
-    """Test AdvancedResearchAdditionalConfig schema"""
-    logger.info("Testing AdvancedResearchAdditionalConfig...")
-
-    # Test default values
-    config = AdvancedResearchAdditionalConfig()
-    assert config.worker_model_name == model_name
-    assert config.worker_max_tokens == max_tokens
-    assert config.exa_search_num_results == exa_search_num_results
-    assert (
-        config.exa_search_max_characters == exa_search_max_characters
+def test_rate_limit_is_retried(monkeypatch):
+    responses = iter(
+        [
+            httpx.Response(429),
+            httpx.Response(
+                200,
+                json={
+                    "outputs": [{"role": "A", "content": "ok"}],
+                    "usage": {"total_cost": 0},
+                },
+            ),
+        ]
     )
-
-    # Test custom values
-    custom_config = AdvancedResearchAdditionalConfig(
-        worker_model_name="custom-model",
-        worker_max_tokens=4000,
-        exa_search_num_results=5,
-        exa_search_max_characters=200,
+    monkeypatch.setattr(m.time, "sleep", lambda s: None)
+    monkeypatch.setattr(
+        m.httpx, "post", lambda *a, **k: next(responses)
     )
-
-    assert custom_config.worker_model_name == "custom-model"
-    assert custom_config.worker_max_tokens == 4000
-    assert custom_config.exa_search_num_results == 5
-    assert custom_config.exa_search_max_characters == 200
-
-    logger.success("✓ AdvancedResearchAdditionalConfig test passed")
+    assert m.swarms_agent("A", "sys", "task")[0] == "ok"
 
 
-def run_all_tests():
-    """Run all unit tests"""
-    logger.info("=" * 60)
-    logger.info("Running Advanced Research System Unit Tests")
-    logger.info("=" * 60)
+def test_exa_search_requests_text_and_parses_results(monkeypatch):
+    sent = {}
 
-    test_functions = [
-        test_generate_id,
-        test_create_json_file,
-        test_summarization_agent,
-        test_run_agent,
-        test_execute_worker_search_agents,
-        test_create_director_agent,
-        test_advanced_research_initialization,
-        test_advanced_research_step,
-        test_advanced_research_run,
-        test_advanced_research_batched_run,
-        test_advanced_research_export_conversation,
-        test_advanced_research_get_output_methods,
-        test_advanced_research_additional_config,
+    def fake_post(url, headers, json, timeout):
+        sent.update(url=url, headers=headers, body=json)
+        return httpx.Response(
+            200,
+            json={
+                "results": [
+                    {
+                        "url": "https://a",
+                        "title": "A",
+                        "publishedDate": "2026-03-04T00:00:00Z",
+                        "text": "body",
+                        "highlights": ["h"],
+                    },
+                    {"title": "no url"},
+                ]
+            },
+        )
+
+    monkeypatch.setattr(m.httpx, "post", fake_post)
+    results = m.exa_search("query", num_results=3, max_characters=200)
+    assert sent["url"].endswith("/search")
+    assert sent["headers"]["x-api-key"] == "exa-test"
+    assert sent["body"]["numResults"] == 3
+    assert sent["body"]["contents"]["text"]["maxCharacters"] == 200
+    assert results == [
+        {
+            "url": "https://a",
+            "title": "A",
+            "published_date": "2026-03-04",
+            "text": "body",
+            "highlights": ["h"],
+        }
     ]
 
-    passed = 0
-    failed = 0
 
-    for test_func in test_functions:
-        try:
-            test_func()
-            passed += 1
-        except Exception as e:
-            logger.error(f"✗ {test_func.__name__} failed: {str(e)}")
-            failed += 1
+def test_subagent_runs_follow_up_searches_then_stops(monkeypatch):
+    searches, prompts = [], []
+    monkeypatch.setattr(
+        m,
+        "exa_search",
+        lambda q, n, c: searches.append(q)
+        or [make_result(f"https://{len(searches)}")],
+    )
+    replies = iter(
+        [
+            '{"findings": "partial [1]", "follow_up_queries": ["narrow"], "coverage_assessment": "partial"}',
+            '{"findings": "full [1][2]", "key_facts": ["f [2]"], "follow_up_queries": ["more"], "coverage_assessment": "comprehensive"}',
+        ]
+    )
+    monkeypatch.setattr(
+        m,
+        "swarms_agent",
+        lambda **k: prompts.append(k["task"]) or (next(replies), 0.5),
+    )
+    config = AdvancedResearchAdditionalConfig(worker_search_rounds=3)
+    result = run_agent(
+        1,
+        {"objective": "obj", "search_queries": ["broad"]},
+        SourceRegistry(),
+        config,
+    )
+    assert searches == ["broad", "narrow"]
+    assert result["findings"] == "full [1][2]"
+    assert result["source_numbers"] == [1, 2]
+    assert result["cost"] == 1.0
+    assert "Search round 2 of 3" in prompts[1]
 
-    logger.info("=" * 60)
-    logger.info(f"Test Results: {passed} passed, {failed} failed")
-    logger.info("=" * 60)
 
-    if failed == 0:
-        logger.success("🎉 All tests passed!")
-    else:
-        logger.error(f"❌ {failed} tests failed!")
+def test_execute_worker_search_agents_returns_text(monkeypatch):
+    monkeypatch.setattr(
+        m,
+        "run_agent",
+        lambda i, q, registry, config: {
+            "objective": q,
+            "findings": f"found {i}",
+        },
+    )
+    assert (
+        execute_worker_search_agents(["q1", "q2"])
+        == "q1\nfound 1\n\nq2\nfound 2"
+    )
 
-    return failed == 0
+
+def fake_pipeline(monkeypatch, synthesis_replies):
+    """Fake Exa and every Swarms API agent for a full run."""
+    monkeypatch.setattr(
+        m,
+        "exa_search",
+        lambda q, n, c: [make_result(f"https://{q}")],
+    )
+    calls = []
+    synthesis = iter(synthesis_replies)
+
+    def fake_agent(agent_name, system_prompt, task, **kwargs):
+        calls.append(agent_name)
+        if "Lead Researcher in a multi-agent" in system_prompt:
+            return (
+                '{"complexity": "comparison", "subtasks": ['
+                '{"objective": "o1", "search_queries": ["s1"]},'
+                '{"objective": "o2", "search_queries": ["s2"]}]}',
+                0.1,
+            )
+        if "Research Subagent" in system_prompt:
+            return (
+                '{"findings": "fact [1]", "coverage_assessment": "comprehensive"}',
+                0.1,
+            )
+        if "final research report" in system_prompt:
+            return next(synthesis), 0.1
+        return "Cited report [2] and [1] and [7]", 0.1
+
+    monkeypatch.setattr(m, "swarms_agent", fake_agent)
+    return calls
 
 
-if __name__ == "__main__":
-    success = run_all_tests()
-    sys.exit(0 if success else 1)
+def test_run_returns_a_cited_report_with_references(monkeypatch):
+    fake_pipeline(monkeypatch, ["Report [1]"])
+    research = AdvancedResearch(max_loops=1)
+    report = research.run("query")
+    assert report.startswith("Cited report [2] and [1] and [7]")
+    references = report.split("## References")[1]
+    assert "[1] Title, 2026-01-02. https://s1" in references
+    assert "[2] Title, 2026-01-02. https://s2" in references
+    assert "[7]" not in references
+    assert research.total_cost == pytest.approx(0.5)
+
+
+def test_run_stops_when_the_lead_finds_no_gaps(monkeypatch):
+    calls = fake_pipeline(
+        monkeypatch,
+        [
+            'R1\n```json\n{"needs_more_research": false, "gaps": []}\n```',
+            "unused",
+        ],
+    )
+    AdvancedResearch(max_loops=3).run("query")
+    assert calls.count("Director-Agent") == 3
+
+
+def test_run_researches_gaps_in_another_loop(monkeypatch):
+    calls = fake_pipeline(
+        monkeypatch,
+        [
+            'R1\n```json\n{"needs_more_research": true, "gaps": ["g"]}\n```',
+            'R2\n```json\n{"needs_more_research": true, "gaps": ["h"]}\n```',
+        ],
+    )
+    AdvancedResearch(max_loops=2).run("query")
+    assert calls.count("Director-Agent") == 5
+
+
+def test_output_types(monkeypatch):
+    fake_pipeline(monkeypatch, ["Report [1]", "Report [1]"])
+    history = AdvancedResearch(output_type="list").run("query")
+    assert [message["role"] for message in history] == [
+        "human",
+        "Director-Agent",
+        "Worker-Search-Agent-1",
+        "Worker-Search-Agent-2",
+        "Citation-Agent",
+    ]
+    assert isinstance(
+        AdvancedResearch(output_type="json").run("query"), str
+    )
+    with pytest.raises(ValueError):
+        AdvancedResearch(output_type="yaml")
+
+
+def test_run_requires_a_task():
+    with pytest.raises(ValueError):
+        AdvancedResearch().run()

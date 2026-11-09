@@ -1,11 +1,5 @@
-swarms
-loguru
-pydantic
 httpx
-python-dotenv
-requests
+loguru
 orjson
-uvicorn
-black
-ruff
-swarms-tools
+pydantic>=2
+python-dotenv
