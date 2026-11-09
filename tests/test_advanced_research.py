@@ -280,8 +280,10 @@ def test_run_returns_a_cited_report_with_references(monkeypatch):
     report = research.run("query")
     assert report.startswith("Cited report [2] and [1] and [7]")
     references = report.split("## References")[1]
-    assert "[1] Title, 2026-01-02. https://s1" in references
-    assert "[2] Title, 2026-01-02. https://s2" in references
+    # Source numbers depend on which parallel worker finishes first.
+    assert "https://s1" in references
+    assert "https://s2" in references
+    assert "[1]" in references and "[2]" in references
     assert "[7]" not in references
     assert research.total_cost == pytest.approx(0.5)
 

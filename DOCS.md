@@ -41,11 +41,11 @@ from advanced_research import AdvancedResearch
 | `id` | `str \| None` | new id per instance | Session id, used for the export file name |
 | `name` | `str` | `"Advanced Research"` | Name of the research system |
 | `description` | `str` | `"Advanced Research"` | Description of the research system |
-| `worker_model_name` | `str` | `WORKER_MODEL_NAME` or `"gpt-5.4-mini"` | Swarms API model for the search subagents |
-| `worker_max_tokens` | `int` | `WORKER_MAX_TOKENS` or `3000` | Maximum output tokens per subagent call |
+| `worker_model_name` | `str` | `"gpt-5.4-mini"` | Swarms API model for the search subagents |
+| `worker_max_tokens` | `int` | `3000` | Maximum output tokens per subagent call |
 | `director_agent_name` | `str` | `"Director-Agent"` | Name of the lead researcher |
-| `director_model_name` | `str` | `DIRECTOR_MODEL_NAME` or `"gpt-5.5"` | Swarms API model for planning, the report and the citation pass |
-| `director_max_tokens` | `int` | `DIRECTOR_MAX_TOKENS` or `4000` | Maximum output tokens for the report and citation calls (planning uses at most 2000) |
+| `director_model_name` | `str` | `"gpt-5.5"` | Swarms API model for planning, the report and the citation pass |
+| `director_max_tokens` | `int` | `4000` | Maximum output tokens for the report and citation calls (planning uses at most 2000) |
 | `output_type` | `str` | `"final"` | What `run()` returns; see [Output types](#output-types) |
 | `max_loops` | `int` | `1` | Most research rounds. The lead stops early when the report has no gaps worth another round |
 | `export_on` | `bool` | `False` | Save the session to `examples/outputs/<id>.json` after each run |
@@ -243,22 +243,15 @@ API failures raise `advanced_research.main.ResearchAPIError` with the service, s
 ## Environment Variables
 
 ```bash
-# Required
 SWARMS_API_KEY="..."   # https://swarms.world/platform/api-keys
 EXA_API_KEY="..."      # https://dashboard.exa.ai/api-keys
 
-# Optional (defaults shown)
-DIRECTOR_MODEL_NAME="gpt-5.5"
-DIRECTOR_MAX_TOKENS=4000
-WORKER_MODEL_NAME="gpt-5.4-mini"
-WORKER_MAX_TOKENS=3000
-EXA_SEARCH_NUM_RESULTS=5
-EXA_SEARCH_MAX_CHARACTERS=1500
+# Optional
 SWARMS_BASE_URL="https://api.swarms.world"
 EXA_BASE_URL="https://api.exa.ai"
 ```
 
-Any model from `GET https://api.swarms.world/v1/models/available` works for either role.
+Models and token limits are constructor arguments on `AdvancedResearch` (and Exa search size is on `AdvancedResearchAdditionalConfig`), not environment variables. Any model from `GET https://api.swarms.world/v1/models/available` works for either role.
 
 ## File Outputs
 

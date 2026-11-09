@@ -52,14 +52,12 @@ EXA_BASE_URL = os.getenv("EXA_BASE_URL", "https://api.exa.ai").rstrip(
     "/"
 )
 
-model_name = os.getenv("WORKER_MODEL_NAME", "gpt-5.4-mini")
-max_tokens = int(os.getenv("WORKER_MAX_TOKENS", 3000))
-exa_search_num_results = int(os.getenv("EXA_SEARCH_NUM_RESULTS", 5))
-exa_search_max_characters = int(
-    os.getenv("EXA_SEARCH_MAX_CHARACTERS", 1500)
-)
-director_model_name = os.getenv("DIRECTOR_MODEL_NAME", "gpt-5.5")
-director_max_tokens = int(os.getenv("DIRECTOR_MAX_TOKENS", 4000))
+DEFAULT_WORKER_MODEL_NAME = "gpt-5.4-mini"
+DEFAULT_WORKER_MAX_TOKENS = 3000
+DEFAULT_DIRECTOR_MODEL_NAME = "gpt-5.5"
+DEFAULT_DIRECTOR_MAX_TOKENS = 4000
+DEFAULT_EXA_SEARCH_NUM_RESULTS = 5
+DEFAULT_EXA_SEARCH_MAX_CHARACTERS = 1500
 
 # The API gateway in front of api.swarms.world ends a request at 30 s.
 GATEWAY_TIMEOUT_SECONDS = 29.0
@@ -86,19 +84,19 @@ class AdvancedResearchAdditionalConfig(BaseModel):
     """Settings for the search subagents."""
 
     worker_model_name: str = Field(
-        default=model_name,
+        default=DEFAULT_WORKER_MODEL_NAME,
         description="The Swarms API model the search subagents use.",
     )
     worker_max_tokens: int = Field(
-        default=max_tokens,
+        default=DEFAULT_WORKER_MAX_TOKENS,
         description="The maximum number of output tokens for each subagent call.",
     )
     exa_search_num_results: int = Field(
-        default=exa_search_num_results,
+        default=DEFAULT_EXA_SEARCH_NUM_RESULTS,
         description="The number of results each Exa search returns.",
     )
     exa_search_max_characters: int = Field(
-        default=exa_search_max_characters,
+        default=DEFAULT_EXA_SEARCH_MAX_CHARACTERS,
         description="The maximum number of page-text characters kept per Exa result.",
     )
     worker_search_rounds: int = Field(
@@ -184,8 +182,8 @@ def swarms_agent(
     agent_name: str,
     system_prompt: str,
     task: str,
-    model_name: str = model_name,
-    max_tokens: int = max_tokens,
+    model_name: str = DEFAULT_WORKER_MODEL_NAME,
+    max_tokens: int = DEFAULT_WORKER_MAX_TOKENS,
     img: Optional[str] = None,
     max_loops: int = 1,
 ) -> Tuple[str, float]:
@@ -242,8 +240,8 @@ def swarms_agent(
 
 def exa_search(
     query: str,
-    num_results: int = exa_search_num_results,
-    max_characters: int = exa_search_max_characters,
+    num_results: int = DEFAULT_EXA_SEARCH_NUM_RESULTS,
+    max_characters: int = DEFAULT_EXA_SEARCH_MAX_CHARACTERS,
 ) -> List[Dict[str, Any]]:
     """Search the web with Exa and return the results with page text.
 
@@ -553,11 +551,11 @@ def execute_worker_search_agents(queries: List[str]) -> str:
 
 def create_director_agent(
     agent_name: str = "Director-Agent",
-    model_name: str = director_model_name,
+    model_name: str = DEFAULT_DIRECTOR_MODEL_NAME,
     task: Optional[str] = None,
     img: Optional[str] = None,
     max_loops: int = 1,
-    max_tokens: int = director_max_tokens,
+    max_tokens: int = DEFAULT_DIRECTOR_MAX_TOKENS,
     max_subagents: int = schema.max_subagents,
 ) -> Tuple[Dict[str, Any], float]:
     """Run the lead researcher's planning step.
@@ -752,15 +750,15 @@ class AdvancedResearch:
         id: Optional[str] = None,
         name: str = "Advanced Research",
         description: str = "Advanced Research",
-        worker_model_name: str = model_name,
+        worker_model_name: str = DEFAULT_WORKER_MODEL_NAME,
         director_agent_name: str = "Director-Agent",
-        director_model_name: str = director_model_name,
-        director_max_tokens: int = director_max_tokens,
+        director_model_name: str = DEFAULT_DIRECTOR_MODEL_NAME,
+        director_max_tokens: int = DEFAULT_DIRECTOR_MAX_TOKENS,
         output_type: str = "final",
         max_loops: int = 1,
         export_on: bool = False,
         director_max_loops: int = 1,
-        worker_max_tokens: int = max_tokens,
+        worker_max_tokens: int = DEFAULT_WORKER_MAX_TOKENS,
         config: Optional[AdvancedResearchAdditionalConfig] = None,
     ):
         if output_type not in OUTPUT_TYPES:

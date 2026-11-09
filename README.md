@@ -25,20 +25,11 @@ pip3 install -U advanced-research
 ## Environment Variables
 
 ```bash
-# Required
 SWARMS_API_KEY="your_swarms_api_key_here"   # https://swarms.world/platform/api-keys
 EXA_API_KEY="your_exa_api_key_here"         # https://dashboard.exa.ai/api-keys
-
-# Optional (defaults shown)
-DIRECTOR_MODEL_NAME="gpt-5.5"        # lead researcher, report and citations
-DIRECTOR_MAX_TOKENS=4000
-WORKER_MODEL_NAME="gpt-5.4-mini"     # search subagents
-WORKER_MAX_TOKENS=3000
-EXA_SEARCH_NUM_RESULTS=5             # results per Exa search
-EXA_SEARCH_MAX_CHARACTERS=1500       # page-text characters kept per result
 ```
 
-Any model from `GET https://api.swarms.world/v1/models/available` works for either role. A Swarms API request ends after 30 seconds, so a slow model with a high `max_tokens` can time out on the report step; the defaults stay well under that limit.
+Models and token limits are set on `AdvancedResearch(...)`, not via environment variables. Any model from `GET https://api.swarms.world/v1/models/available` works for either role. A Swarms API request ends after 30 seconds, so a slow model with a high `max_tokens` can time out on the report step; the defaults stay well under that limit.
 
 ## Quick Start
 
@@ -51,6 +42,10 @@ from advanced_research import AdvancedResearch
 research_system = AdvancedResearch(
     name="AI Research Team",
     description="Specialized AI research system",
+    director_model_name="gpt-5.5",      # lead researcher, report, citations
+    worker_model_name="gpt-5.4-mini",   # search subagents
+    director_max_tokens=4000,
+    worker_max_tokens=3000,
     max_loops=1,
 )
 
