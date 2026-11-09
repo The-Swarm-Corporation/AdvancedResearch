@@ -4,8 +4,8 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "advanced-research"
-version = "0.2.2"
-description = "Advanced Multi-Agent Research System - Enhanced implementation of Anthropic's orchestrator-worker pattern with 90.2% performance improvement over single-agent systems"
+version = "0.3.0"
+description = "Multi-agent web research on the Swarms API and Exa search: an implementation of Anthropic's orchestrator-worker research pattern"
 license = "MIT"
 authors = ["Kye Gomez <kye@swarms.world>"]
 readme = "README.md"
@@ -38,20 +38,17 @@ classifiers = [
 
 [tool.poetry.dependencies]
 python = ">=3.10"
-swarms = "*"
-python-dotenv = "*"
-requests = "*"
-loguru = "*"
-pydantic = "*"
 httpx = "*"
+loguru = "*"
 orjson = "*"
-swarms-tools = "*"
+pydantic = ">=2"
+python-dotenv = "*"
 
 [tool.poetry.group.dev.dependencies]
 black = "*"
 ruff = "*"
 mypy = "*"
-types-httpx = "*"
+pytest = "*"
 
 
 

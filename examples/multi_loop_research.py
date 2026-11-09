@@ -17,8 +17,8 @@ def iterative_research():
         name="Iterative Research Team",
         description="Research system with iterative refinement capabilities",
         max_loops=3,  # Three research iterations
-        director_max_tokens=12000,
-        worker_max_tokens=8000,
+        director_max_tokens=4000,
+        worker_max_tokens=3000,
         output_type="all",  # Include full conversation history
         export_on=True,
     )
