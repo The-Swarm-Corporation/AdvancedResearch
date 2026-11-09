@@ -67,10 +67,34 @@ Research the task and return the result in the format set by `output_type`. With
 research = AdvancedResearch(max_loops=2)
 report = research.run("How do solid-state batteries compare with lithium-ion in 2026?")
 print(report)
-print(f"Swarms API cost: ${research.total_cost:.4f}")
+usage = research.get_usage()
+print(
+    f"Total ${usage['total_cost_usd']:.4f} "
+    f"(Swarms ${usage['swarms_cost_usd']:.4f}, Exa ${usage['exa_cost_usd']:.4f})"
+)
+print(
+    f"Tokens in/out: {usage['input_tokens']}/{usage['output_tokens']}"
+)
 ```
 
-Each call to `run()` starts a fresh session: the conversation, sources and cost are reset.
+Each call to `run()` starts a fresh session: the conversation, sources and usage are reset.
+
+#### `get_usage() -> dict`
+
+Return token and cost attribution for the current run:
+
+| Field | Description |
+|-------|-------------|
+| `input_tokens` | Sum of Swarms `usage.input_tokens` |
+| `output_tokens` | Sum of Swarms `usage.output_tokens` |
+| `total_tokens` | Sum of Swarms `usage.total_tokens` |
+| `swarms_calls` | Number of Swarms agent completions |
+| `swarms_cost_usd` | Sum of Swarms `usage.total_cost` |
+| `exa_searches` | Number of Exa `/search` requests |
+| `exa_results` | Total Exa results returned |
+| `exa_cost_usd` | Estimated Exa cost (`auto` = $7/1k requests up to 10 results, +$1/1k per extra result) |
+| `total_cost_usd` | `swarms_cost_usd + exa_cost_usd` |
+| `calls` | Per-call list attributing each Swarms agent stage and each Exa search |
 
 #### `step(task, img=None, previous_report=None, gaps=None) -> dict`
 
@@ -101,21 +125,22 @@ Return the accepted `output_type` values.
 |-----------|------|-------------|
 | `conversation` | `Conversation` | The session history: the query, each plan, each subagent's findings, the final report |
 | `sources` | `SourceRegistry` | Every source found, numbered; `sources.sources` is the list in citation order |
-| `worker_results` | `List[dict]` | Each subagent's objective, findings, key facts, conflicts, searches, source numbers, confidence and cost |
-| `total_cost` | `float` | The session's Swarms API cost in USD, summed from each response's `usage.total_cost`. Exa is billed separately by Exa |
+| `worker_results` | `List[dict]` | Each subagent's objective, findings, key facts, conflicts, searches, source numbers, confidence, cost and nested `usage` |
+| `total_cost` | `float` | Combined Swarms API + estimated Exa search cost for the session in USD |
+| `usage_tracker` | `UsageTracker` | Per-call Swarms and Exa usage; prefer `get_usage()` |
 | `config` | `AdvancedResearchAdditionalConfig` | The settings the subagents use |
 
 ## Functions
 
 All are in `advanced_research.main`.
 
-### `swarms_agent(agent_name, system_prompt, task, model_name, max_tokens, img=None, max_loops=1) -> (str, float)`
+### `swarms_agent(agent_name, system_prompt, task, model_name, max_tokens, img=None, max_loops=1) -> (str, dict)`
 
-Run one agent on the Swarms API and return its reply text and the call's cost in USD.
+Run one agent on the Swarms API and return its reply text and a usage dict (`input_tokens`, `output_tokens`, `total_tokens`, `total_cost`, `calls`).
 
-### `exa_search(query, num_results, max_characters) -> List[dict]`
+### `exa_search(query, num_results, max_characters, search_type="auto") -> (List[dict], dict)`
 
-Search Exa and return results as dicts with `url`, `title`, `published_date`, `text` and `highlights`.
+Search Exa and return results as dicts with `url`, `title`, `published_date`, `text` and `highlights`, plus an estimated cost usage dict for that request.
 
 ### `run_agent(i, query, registry=None, config=schema) -> dict`
 
@@ -129,9 +154,9 @@ Run one subagent per subtask in parallel. A subagent that fails returns its erro
 
 Research each query with its own subagent and return the findings as one string.
 
-### `create_director_agent(agent_name, model_name, task, img=None, max_loops=1, max_tokens=..., max_subagents=5) -> (dict, float)`
+### `create_director_agent(agent_name, model_name, task, img=None, max_loops=1, max_tokens=..., max_subagents=5) -> (dict, dict)`
 
-Run the lead researcher's planning step and return the plan and its cost. If the reply has no usable plan, the query is researched as a single subtask.
+Run the lead researcher's planning step and return the plan and its usage dict. If the reply has no usable plan, the query is researched as a single subtask.
 
 ### `build_references(report, registry) -> str`
 
@@ -265,6 +290,15 @@ With `export_on=True`, each run writes `examples/outputs/<id>.json`:
   "description": "Advanced Research",
   "conversation_history": [{"role": "human", "content": "...", "timestamp": "..."}],
   "sources": [{"url": "...", "title": "...", "published_date": "...", "text": "...", "highlights": ["..."]}],
+  "usage": {
+    "input_tokens": 12000,
+    "output_tokens": 4000,
+    "total_tokens": 16000,
+    "swarms_cost_usd": 0.0357,
+    "exa_cost_usd": 0.007,
+    "total_cost_usd": 0.0427,
+    "calls": []
+  },
   "total_cost_usd": 0.0427,
   "export_timestamp": "2026-11-08T12:00:30"
 }

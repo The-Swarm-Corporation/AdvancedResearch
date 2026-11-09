@@ -28,7 +28,7 @@ import threading
 import time
 import uuid
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Any
 
 import httpx
 import orjson
@@ -58,10 +58,206 @@ DEFAULT_DIRECTOR_MODEL_NAME = "gpt-5.5"
 DEFAULT_DIRECTOR_MAX_TOKENS = 4000
 DEFAULT_EXA_SEARCH_NUM_RESULTS = 5
 DEFAULT_EXA_SEARCH_MAX_CHARACTERS = 1500
+DEFAULT_EXA_SEARCH_TYPE = "auto"
+
+# Exa /search pricing (USD per 1k requests). Base covers up to 10 results;
+# contents for those results are included. See https://exa.ai/docs/admin/pricing
+EXA_SEARCH_BASE_PER_1K = {
+    "lite": 4.0,
+    "instant": 4.0,
+    "auto": 7.0,
+    "fast": 7.0,
+    "deep": 12.0,
+    "deep-lite": 12.0,
+    "deep-reasoning": 15.0,
+}
+EXA_EXTRA_RESULT_PER_1K = 1.0
 
 # The API gateway in front of api.swarms.world ends a request at 30 s.
 GATEWAY_TIMEOUT_SECONDS = 29.0
 _PRINT_LOCK = threading.Lock()
+
+
+def _empty_token_usage() -> dict[str, Any]:
+    return {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "total_cost": 0.0,
+        "calls": 0,
+    }
+
+
+def _parse_swarms_usage(data: dict[str, Any]) -> dict[str, Any]:
+    """Read input/output tokens and cost from a Swarms API response."""
+    usage = data.get("usage") or {}
+    input_tokens = int(usage.get("input_tokens") or 0)
+    output_tokens = int(usage.get("output_tokens") or 0)
+    total_tokens = int(
+        usage.get("total_tokens") or (input_tokens + output_tokens)
+    )
+    return {
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "total_tokens": total_tokens,
+        "total_cost": float(usage.get("total_cost") or 0.0),
+        "calls": 1,
+    }
+
+
+def _coerce_usage(usage_or_cost: Any) -> dict[str, Any]:
+    """Accept a full usage dict or a bare cost float (for simple fakes)."""
+    if isinstance(usage_or_cost, dict):
+        input_tokens = int(usage_or_cost.get("input_tokens") or 0)
+        output_tokens = int(usage_or_cost.get("output_tokens") or 0)
+        total_tokens = int(
+            usage_or_cost.get("total_tokens")
+            or (input_tokens + output_tokens)
+        )
+        return {
+            "input_tokens": input_tokens,
+            "output_tokens": output_tokens,
+            "total_tokens": total_tokens,
+            "total_cost": float(
+                usage_or_cost.get("total_cost") or 0.0
+            ),
+            "calls": int(usage_or_cost.get("calls") or 1),
+        }
+    return {
+        "input_tokens": 0,
+        "output_tokens": 0,
+        "total_tokens": 0,
+        "total_cost": float(usage_or_cost or 0.0),
+        "calls": 1,
+    }
+
+
+def _add_usage(
+    total: dict[str, Any], usage: dict[str, Any]
+) -> dict[str, Any]:
+    total["input_tokens"] += usage.get("input_tokens", 0)
+    total["output_tokens"] += usage.get("output_tokens", 0)
+    total["total_tokens"] += usage.get("total_tokens", 0)
+    total["total_cost"] += float(usage.get("total_cost") or 0.0)
+    total["calls"] += int(usage.get("calls") or 0)
+    return total
+
+
+def estimate_exa_search_cost(
+    num_results: int,
+    search_type: str = DEFAULT_EXA_SEARCH_TYPE,
+) -> float:
+    """Estimate Exa /search cost in USD for one request.
+
+    Base price covers up to 10 results; each result above 10 adds
+    ``EXA_EXTRA_RESULT_PER_1K`` per 1k results.
+    """
+    base = EXA_SEARCH_BASE_PER_1K.get(
+        search_type, EXA_SEARCH_BASE_PER_1K[DEFAULT_EXA_SEARCH_TYPE]
+    )
+    extras = max(0, int(num_results) - 10)
+    return (base + extras * EXA_EXTRA_RESULT_PER_1K) / 1000.0
+
+
+class UsageTracker:
+    """Thread-safe token and cost tracker for one research run."""
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.calls: list[dict[str, Any]] = []
+        self.swarms = _empty_token_usage()
+        self.exa = {
+            "searches": 0,
+            "results": 0,
+            "total_cost": 0.0,
+        }
+
+    def record_swarms(
+        self,
+        agent_name: str,
+        usage: dict[str, Any],
+        *,
+        model_name: str | None = None,
+        stage: str | None = None,
+    ) -> None:
+        parsed = _coerce_usage(usage)
+        entry = {
+            "service": "swarms",
+            "agent_name": agent_name,
+            "model_name": model_name,
+            "stage": stage,
+            **parsed,
+        }
+        with self._lock:
+            self.calls.append(entry)
+            _add_usage(self.swarms, parsed)
+
+    def record_exa(
+        self,
+        query: str,
+        *,
+        search_type: str,
+        num_results_requested: int,
+        num_results_returned: int,
+        cost: float,
+    ) -> None:
+        entry = {
+            "service": "exa",
+            "query": query,
+            "search_type": search_type,
+            "num_results_requested": num_results_requested,
+            "num_results_returned": num_results_returned,
+            "total_cost": float(cost),
+        }
+        with self._lock:
+            self.calls.append(entry)
+            self.exa["searches"] += 1
+            self.exa["results"] += int(num_results_returned)
+            self.exa["total_cost"] += float(cost)
+
+    def merge_worker(self, usage: dict[str, Any] | None) -> None:
+        """Fold a subagent's nested usage (swarms + exa) into this tracker."""
+        if not usage:
+            return
+        for call in usage.get("calls") or []:
+            service = call.get("service")
+            if service == "swarms":
+                self.record_swarms(
+                    call.get("agent_name") or "worker",
+                    call,
+                    model_name=call.get("model_name"),
+                    stage=call.get("stage"),
+                )
+            elif service == "exa":
+                self.record_exa(
+                    call.get("query") or "",
+                    search_type=call.get("search_type")
+                    or DEFAULT_EXA_SEARCH_TYPE,
+                    num_results_requested=int(
+                        call.get("num_results_requested") or 0
+                    ),
+                    num_results_returned=int(
+                        call.get("num_results_returned") or 0
+                    ),
+                    cost=float(call.get("total_cost") or 0.0),
+                )
+
+    def summary(self) -> dict[str, Any]:
+        with self._lock:
+            swarms_cost = float(self.swarms["total_cost"])
+            exa_cost = float(self.exa["total_cost"])
+            return {
+                "input_tokens": self.swarms["input_tokens"],
+                "output_tokens": self.swarms["output_tokens"],
+                "total_tokens": self.swarms["total_tokens"],
+                "swarms_calls": self.swarms["calls"],
+                "swarms_cost_usd": round(swarms_cost, 6),
+                "exa_searches": self.exa["searches"],
+                "exa_results": self.exa["results"],
+                "exa_cost_usd": round(exa_cost, 6),
+                "total_cost_usd": round(swarms_cost + exa_cost, 6),
+                "calls": list(self.calls),
+            }
 
 
 def _emit_agent_output(
@@ -143,11 +339,11 @@ class ResearchAPIError(RuntimeError):
 def _post_json(
     service: str,
     url: str,
-    headers: Dict[str, str],
-    body: Dict[str, Any],
+    headers: dict[str, str],
+    body: dict[str, Any],
     timeout: float = 120.0,
     attempts: int = 3,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """POST a JSON body and return the JSON response.
 
     Retries connection errors, 429s and short-lived 5xx responses. A 503
@@ -206,9 +402,9 @@ def swarms_agent(
     task: str,
     model_name: str = DEFAULT_WORKER_MODEL_NAME,
     max_tokens: int = DEFAULT_WORKER_MAX_TOKENS,
-    img: Optional[str] = None,
+    img: str | None = None,
     max_loops: int = 1,
-) -> Tuple[str, float]:
+) -> tuple[str, dict[str, Any]]:
     """Run one agent on the Swarms API.
 
     Args:
@@ -221,9 +417,10 @@ def swarms_agent(
         max_loops: Agent loops for this call.
 
     Returns:
-        The agent's reply text and the call's cost in USD.
+        The agent's reply text and a usage dict with input_tokens,
+        output_tokens, total_tokens, total_cost and calls.
     """
-    body: Dict[str, Any] = {
+    body: dict[str, Any] = {
         "agent_config": {
             "agent_name": agent_name,
             "system_prompt": system_prompt,
@@ -256,25 +453,26 @@ def swarms_agent(
             and isinstance(message.get("content"), str)
         ]
         text = "\n".join(replies)
-    cost = float((data.get("usage") or {}).get("total_cost") or 0.0)
-    return text.strip(), cost
+    return text.strip(), _parse_swarms_usage(data)
 
 
 def exa_search(
     query: str,
     num_results: int = DEFAULT_EXA_SEARCH_NUM_RESULTS,
     max_characters: int = DEFAULT_EXA_SEARCH_MAX_CHARACTERS,
-) -> List[Dict[str, Any]]:
+    search_type: str = DEFAULT_EXA_SEARCH_TYPE,
+) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     """Search the web with Exa and return the results with page text.
 
     Args:
         query: The search query.
         num_results: Number of results to return.
         max_characters: Page-text characters to keep per result.
+        search_type: Exa search type (default ``auto``).
 
     Returns:
-        A list of dicts with url, title, published_date, text and
-        highlights.
+        A list of result dicts and an Exa usage dict with the estimated
+        cost for this request.
     """
     data = _post_json(
         "Exa",
@@ -286,7 +484,7 @@ def exa_search(
         {
             "query": query,
             "numResults": num_results,
-            "type": "auto",
+            "type": search_type,
             "contents": {
                 "text": {"maxCharacters": max_characters},
                 "highlights": {
@@ -297,7 +495,7 @@ def exa_search(
         },
         timeout=60.0,
     )
-    return [
+    results = [
         {
             "url": result.get("url", ""),
             "title": result.get("title") or "",
@@ -310,6 +508,16 @@ def exa_search(
         for result in data.get("results", [])
         if result.get("url")
     ]
+    cost = estimate_exa_search_cost(num_results, search_type)
+    usage = {
+        "service": "exa",
+        "query": query,
+        "search_type": search_type,
+        "num_results_requested": num_results,
+        "num_results_returned": len(results),
+        "total_cost": cost,
+    }
+    return results, usage
 
 
 class SourceRegistry:
@@ -318,10 +526,10 @@ class SourceRegistry:
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
-        self._ids: Dict[str, int] = {}
-        self.sources: List[Dict[str, Any]] = []
+        self._ids: dict[str, int] = {}
+        self.sources: list[dict[str, Any]] = []
 
-    def add(self, result: Dict[str, Any]) -> int:
+    def add(self, result: dict[str, Any]) -> int:
         """Register a search result and return its citation number."""
         with self._lock:
             url = result["url"]
@@ -330,12 +538,12 @@ class SourceRegistry:
                 self._ids[url] = len(self.sources)
             return self._ids[url]
 
-    def get(self, number: int) -> Optional[Dict[str, Any]]:
+    def get(self, number: int) -> dict[str, Any] | None:
         if 1 <= number <= len(self.sources):
             return self.sources[number - 1]
         return None
 
-    def format(self, numbers: List[int]) -> str:
+    def format(self, numbers: list[int]) -> str:
         """Render the given sources as numbered evidence for a prompt."""
         blocks = []
         for number in numbers:
@@ -357,7 +565,7 @@ class SourceRegistry:
         return "\n\n".join(blocks)
 
 
-def _parse_json(text: str) -> Optional[Any]:
+def _parse_json(text: str) -> Any | None:
     """Parse the JSON object in a model reply, with or without code
     fences or surrounding prose."""
     fenced = re.search(r"```(?:json)?\s*(.*?)```", text, re.DOTALL)
@@ -377,7 +585,7 @@ def _today() -> str:
     return datetime.now().strftime("%d %B %Y")
 
 
-def _subtask_text(subtask: Dict[str, Any]) -> str:
+def _subtask_text(subtask: dict[str, Any]) -> str:
     lines = [
         f"Today's date: {_today()}",
         f"Objective: {subtask['objective']}",
@@ -390,8 +598,8 @@ def _subtask_text(subtask: Dict[str, Any]) -> str:
 
 
 def _normalize_subtask(
-    subtask: Union[str, Dict[str, Any]],
-) -> Dict[str, Any]:
+    subtask: str | dict[str, Any],
+) -> dict[str, Any]:
     if isinstance(subtask, str):
         return {"objective": subtask, "search_queries": [subtask]}
     objective = str(subtask.get("objective") or "").strip()
@@ -409,11 +617,11 @@ def _normalize_subtask(
 
 def run_agent(
     i: int,
-    query: Union[str, Dict[str, Any]],
-    registry: Optional[SourceRegistry] = None,
+    query: str | dict[str, Any],
+    registry: SourceRegistry | None = None,
     config: AdvancedResearchAdditionalConfig = schema,
     verbose: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Run one search subagent on its subtask.
 
     Each round searches Exa for the round's queries in parallel, registers
@@ -432,17 +640,17 @@ def run_agent(
 
     Returns:
         A dict with the subagent's objective, findings, key_facts,
-        conflicts, the source numbers it was given, its confidence and its
-        cost in USD.
+        conflicts, the source numbers it was given, its confidence, cost
+        in USD, and a nested ``usage`` breakdown (Swarms + Exa).
     """
     registry = registry or SourceRegistry()
     subtask = _normalize_subtask(query)
     agent_name = f"Worker-Search-Agent-{i}"
     queries = subtask["search_queries"][:3]
-    seen_queries: List[str] = []
-    source_numbers: List[int] = []
-    findings: Dict[str, Any] = {}
-    cost = 0.0
+    seen_queries: list[str] = []
+    source_numbers: list[int] = []
+    findings: dict[str, Any] = {}
+    usage_tracker = UsageTracker()
 
     for round_number in range(1, config.worker_search_rounds + 1):
         queries = [q for q in queries if q not in seen_queries][:3]
@@ -452,7 +660,7 @@ def run_agent(
         with concurrent.futures.ThreadPoolExecutor(
             max_workers=len(queries)
         ) as pool:
-            batches = list(
+            search_outputs = list(
                 pool.map(
                     lambda q: exa_search(
                         q,
@@ -462,7 +670,38 @@ def run_agent(
                     queries,
                 )
             )
-        for results in batches:
+        for output in search_outputs:
+            if (
+                isinstance(output, tuple)
+                and len(output) == 2
+                and isinstance(output[1], dict)
+            ):
+                results, exa_usage = output
+            else:
+                results = list(output or [])
+                exa_usage = {
+                    "query": "",
+                    "search_type": DEFAULT_EXA_SEARCH_TYPE,
+                    "num_results_requested": config.exa_search_num_results,
+                    "num_results_returned": len(results),
+                    "total_cost": estimate_exa_search_cost(
+                        config.exa_search_num_results
+                    ),
+                }
+            usage_tracker.record_exa(
+                exa_usage.get("query") or "",
+                search_type=exa_usage.get("search_type")
+                or DEFAULT_EXA_SEARCH_TYPE,
+                num_results_requested=int(
+                    exa_usage.get("num_results_requested")
+                    or config.exa_search_num_results
+                ),
+                num_results_returned=int(
+                    exa_usage.get("num_results_returned")
+                    or len(results)
+                ),
+                cost=float(exa_usage.get("total_cost") or 0.0),
+            )
             for result in results:
                 number = registry.add(result)
                 if number not in source_numbers:
@@ -480,7 +719,7 @@ def run_agent(
             f"{previous}\n\n"
             f"Search results:\n\n{registry.format(source_numbers) or 'No results were found.'}"
         )
-        text, call_cost = swarms_agent(
+        text, call_usage = swarms_agent(
             agent_name=agent_name,
             system_prompt=get_subagent_prompt(
                 "breadth_first", config.worker_search_rounds
@@ -489,7 +728,13 @@ def run_agent(
             model_name=config.worker_model_name,
             max_tokens=config.worker_max_tokens,
         )
-        cost += call_cost
+        call_usage = _coerce_usage(call_usage)
+        usage_tracker.record_swarms(
+            agent_name,
+            call_usage,
+            model_name=config.worker_model_name,
+            stage=f"search round {round_number}",
+        )
         _emit_agent_output(
             f"{agent_name} (search round {round_number})",
             text,
@@ -509,6 +754,7 @@ def run_agent(
         if findings.get("coverage_assessment") == "comprehensive":
             break
 
+    usage = usage_tracker.summary()
     logger.info(
         f"{agent_name} finished with {len(source_numbers)} sources"
     )
@@ -522,22 +768,23 @@ def run_agent(
         "searches": seen_queries,
         "confidence_level": findings.get("confidence_level"),
         "coverage_assessment": findings.get("coverage_assessment"),
-        "cost": cost,
+        "cost": usage["total_cost_usd"],
+        "usage": usage,
     }
 
 
 def run_worker_agents(
-    subtasks: List[Union[str, Dict[str, Any]]],
-    registry: Optional[SourceRegistry] = None,
+    subtasks: list[str | dict[str, Any]],
+    registry: SourceRegistry | None = None,
     config: AdvancedResearchAdditionalConfig = schema,
     verbose: bool = False,
-) -> List[Dict[str, Any]]:
+) -> list[dict[str, Any]]:
     """Run one search subagent per subtask, all in parallel, and return
     their results in subtask order. A subagent that fails is reported in
     its result instead of failing the whole round."""
     registry = registry or SourceRegistry()
 
-    def run(item: Tuple[int, Union[str, Dict[str, Any]]]):
+    def run(item: tuple[int, str | dict[str, Any]]):
         index, subtask = item
         try:
             return run_agent(
@@ -555,6 +802,7 @@ def run_worker_agents(
                 "searches": [],
                 "error": str(error),
                 "cost": 0.0,
+                "usage": UsageTracker().summary(),
             }
 
     if not subtasks:
@@ -565,7 +813,7 @@ def run_worker_agents(
         return list(pool.map(run, enumerate(subtasks, start=1)))
 
 
-def execute_worker_search_agents(queries: List[str]) -> str:
+def execute_worker_search_agents(queries: list[str]) -> str:
     """Research each query with its own search subagent, in parallel, and
     return their findings as one string.
 
@@ -584,12 +832,12 @@ def execute_worker_search_agents(queries: List[str]) -> str:
 def create_director_agent(
     agent_name: str = "Director-Agent",
     model_name: str = DEFAULT_DIRECTOR_MODEL_NAME,
-    task: Optional[str] = None,
-    img: Optional[str] = None,
+    task: str | None = None,
+    img: str | None = None,
     max_loops: int = 1,
     max_tokens: int = DEFAULT_DIRECTOR_MAX_TOKENS,
     max_subagents: int = schema.max_subagents,
-) -> Tuple[Dict[str, Any], float]:
+) -> tuple[dict[str, Any], dict[str, Any]]:
     """Run the lead researcher's planning step.
 
     Args:
@@ -603,9 +851,9 @@ def create_director_agent(
 
     Returns:
         The research plan (complexity, strategy and subtasks) and the
-        call's cost in USD.
+        call's usage dict.
     """
-    text, cost = swarms_agent(
+    text, usage = swarms_agent(
         agent_name=agent_name,
         system_prompt=get_orchestrator_prompt(max_subagents),
         task=task or "",
@@ -629,10 +877,10 @@ def create_director_agent(
         for subtask in plan["subtasks"][:max_subagents]
         if isinstance(subtask, (str, dict))
     ]
-    return plan, cost
+    return plan, _coerce_usage(usage)
 
 
-def _split_report(text: str) -> Tuple[str, bool, List[str]]:
+def _split_report(text: str) -> tuple[str, bool, list[str]]:
     """Split the synthesis reply into the report and its trailing
     needs_more_research decision."""
     blocks = list(
@@ -654,8 +902,8 @@ def _split_report(text: str) -> Tuple[str, bool, List[str]]:
     return report, bool(decision.get("needs_more_research")), gaps
 
 
-def _cited_numbers(report: str) -> List[int]:
-    numbers: List[int] = []
+def _cited_numbers(report: str) -> list[int]:
+    numbers: list[int] = []
     for match in re.finditer(r"\[(\d+)\]", report):
         number = int(match.group(1))
         if number not in numbers:
@@ -687,7 +935,7 @@ class Conversation:
 
     def __init__(self, name: str = "conversation") -> None:
         self.name = name
-        self.messages: List[Dict[str, Any]] = []
+        self.messages: list[dict[str, Any]] = []
 
     def add(self, role: str, content: Any) -> None:
         self.messages.append(
@@ -698,10 +946,10 @@ class Conversation:
             }
         )
 
-    def get_final_message(self) -> Optional[Any]:
+    def get_final_message(self) -> Any | None:
         return self.messages[-1]["content"] if self.messages else None
 
-    def get_history(self) -> List[Dict[str, Any]]:
+    def get_history(self) -> list[dict[str, Any]]:
         return list(self.messages)
 
     def format(self, output_type: str) -> Any:
@@ -775,12 +1023,13 @@ class AdvancedResearch:
         config: Subagent and search settings.
         conversation: The session's message history.
         sources: The registry of every source found.
-        total_cost: Swarms API cost of the session in USD.
+        usage_tracker: Per-call Swarms and Exa usage for the session.
+        total_cost: Combined Swarms + Exa cost of the session in USD.
     """
 
     def __init__(
         self,
-        id: Optional[str] = None,
+        id: str | None = None,
         name: str = "Advanced Research",
         description: str = "Advanced Research",
         worker_model_name: str = DEFAULT_WORKER_MODEL_NAME,
@@ -793,7 +1042,7 @@ class AdvancedResearch:
         director_max_loops: int = 1,
         worker_max_tokens: int = DEFAULT_WORKER_MAX_TOKENS,
         verbose: bool = False,
-        config: Optional[AdvancedResearchAdditionalConfig] = None,
+        config: AdvancedResearchAdditionalConfig | None = None,
     ):
         if output_type not in OUTPUT_TYPES:
             raise ValueError(
@@ -825,8 +1074,22 @@ class AdvancedResearch:
             name=f"conversation-{self.id}"
         )
         self.sources = SourceRegistry()
-        self.worker_results: List[Dict[str, Any]] = []
-        self.total_cost = 0.0
+        self.worker_results: list[dict[str, Any]] = []
+        self.usage_tracker = UsageTracker()
+
+    @property
+    def total_cost(self) -> float:
+        """Combined Swarms API + Exa search cost for the current run."""
+        return float(self.get_usage()["total_cost_usd"])
+
+    def get_usage(self) -> dict[str, Any]:
+        """Return token and cost usage for the current research run.
+
+        Includes Swarms input/output tokens and cost, estimated Exa search
+        cost (``auto`` search pricing), and a per-call ``calls`` list that
+        attributes each agent reply and Exa search.
+        """
+        return self.usage_tracker.summary()
 
     def _director(
         self,
@@ -835,7 +1098,7 @@ class AdvancedResearch:
         max_tokens: int,
         stage: str = "director",
     ) -> str:
-        text, cost = swarms_agent(
+        text, usage = swarms_agent(
             agent_name=self.director_agent_name,
             system_prompt=system_prompt,
             task=task,
@@ -843,7 +1106,12 @@ class AdvancedResearch:
             max_tokens=max_tokens,
             max_loops=self.director_max_loops,
         )
-        self.total_cost += cost
+        self.usage_tracker.record_swarms(
+            self.director_agent_name,
+            usage,
+            model_name=self.director_model_name,
+            stage=stage,
+        )
         _emit_agent_output(
             f"{self.director_agent_name} ({stage})",
             text,
@@ -854,10 +1122,10 @@ class AdvancedResearch:
     def _plan(
         self,
         task: str,
-        report: Optional[str],
-        gaps: List[str],
-        img: Optional[str],
-    ) -> Dict[str, Any]:
+        report: str | None,
+        gaps: list[str],
+        img: str | None,
+    ) -> dict[str, Any]:
         planning_task = (
             f"Today's date: {_today()}\nResearch query: {task}"
         )
@@ -866,7 +1134,7 @@ class AdvancedResearch:
                 f"\n\nPrevious report:\n{report}\n\nGaps to research:\n"
                 + "\n".join(f"- {gap}" for gap in gaps)
             )
-        plan, cost = create_director_agent(
+        plan, usage = create_director_agent(
             agent_name=self.director_agent_name,
             model_name=self.director_model_name,
             task=planning_task,
@@ -875,7 +1143,12 @@ class AdvancedResearch:
             max_tokens=min(self.director_max_tokens, 2000),
             max_subagents=self.config.max_subagents,
         )
-        self.total_cost += cost
+        self.usage_tracker.record_swarms(
+            self.director_agent_name,
+            usage,
+            model_name=self.director_model_name,
+            stage="plan",
+        )
         _emit_agent_output(
             f"{self.director_agent_name} (plan)",
             plan,
@@ -884,8 +1157,8 @@ class AdvancedResearch:
         return plan
 
     def _synthesize(
-        self, task: str, previous_report: Optional[str]
-    ) -> Tuple[str, bool, List[str]]:
+        self, task: str, previous_report: str | None
+    ) -> tuple[str, bool, list[str]]:
         findings = []
         for result in self.worker_results:
             if result.get("error"):
@@ -945,11 +1218,11 @@ class AdvancedResearch:
 
     def step(
         self,
-        task: Optional[str],
-        img: Optional[str] = None,
-        previous_report: Optional[str] = None,
-        gaps: Optional[List[str]] = None,
-    ) -> Dict[str, Any]:
+        task: str | None,
+        img: str | None = None,
+        previous_report: str | None = None,
+        gaps: list[str] | None = None,
+    ) -> dict[str, Any]:
         """Run one research round: plan, search in parallel, write the
         report.
 
@@ -972,7 +1245,7 @@ class AdvancedResearch:
             verbose=self.verbose,
         )
         for result in results:
-            self.total_cost += result["cost"]
+            self.usage_tracker.merge_worker(result.get("usage"))
             self.conversation.add(
                 result["agent_name"],
                 {
@@ -1002,8 +1275,8 @@ class AdvancedResearch:
 
     def run(
         self,
-        task: Optional[str] = None,
-        img: Optional[str] = None,
+        task: str | None = None,
+        img: str | None = None,
         **kwargs: Any,
     ) -> Any:
         """Research the task and return the cited report.
@@ -1028,8 +1301,8 @@ class AdvancedResearch:
         self._reset()
         self.conversation.add("human", task)
 
-        report: Optional[str] = None
-        gaps: List[str] = []
+        report: str | None = None
+        gaps: list[str] = []
         for loop_num in range(self.max_loops):
             logger.info(
                 f"Starting research loop {loop_num + 1}/{self.max_loops}"
@@ -1056,15 +1329,19 @@ class AdvancedResearch:
             final_report,
             self.verbose,
         )
+        usage = self.get_usage()
         logger.info(
-            f"Research finished: {len(self.sources.sources)} sources, ${self.total_cost:.4f} Swarms API cost"
+            f"Research finished: {len(self.sources.sources)} sources, "
+            f"${usage['total_cost_usd']:.4f} total "
+            f"(Swarms ${usage['swarms_cost_usd']:.4f}, "
+            f"Exa ${usage['exa_cost_usd']:.4f})"
         )
 
         if self.export_on:
             self._export_conversation()
         return self.conversation.format(self.output_type)
 
-    def batched_run(self, tasks: List[str]) -> List[Any]:
+    def batched_run(self, tasks: list[str]) -> list[Any]:
         """Research each task in turn and return the results in order."""
         return [self.run(task) for task in tasks]
 
@@ -1072,6 +1349,7 @@ class AdvancedResearch:
         """Save the session to examples/outputs/<id>.json."""
         output_file = f"examples/outputs/{self.id}.json"
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
+        usage = self.get_usage()
         create_json_file(
             {
                 "id": self.id,
@@ -1079,13 +1357,14 @@ class AdvancedResearch:
                 "description": self.description,
                 "conversation_history": self.conversation.get_history(),
                 "sources": self.sources.sources,
-                "total_cost_usd": round(self.total_cost, 6),
+                "usage": usage,
+                "total_cost_usd": usage["total_cost_usd"],
                 "export_timestamp": datetime.now().isoformat(),
             },
             output_file,
         )
         logger.info(f"Conversation exported to {output_file}")
 
-    def get_output_methods(self) -> List[str]:
+    def get_output_methods(self) -> list[str]:
         """Return the output_type values run() accepts."""
         return list(OUTPUT_TYPES)

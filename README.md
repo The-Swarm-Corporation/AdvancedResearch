@@ -55,6 +55,7 @@ result = research_system.run(
     "What are the latest developments in quantum computing?"
 )
 print(result)
+print(research_system.get_usage())  # tokens + Swarms/Exa costs
 ```
 
 ### With Export Functionality
@@ -171,6 +172,7 @@ Ready-to-run examples demonstrating all features of the Advanced Research system
 | **Batch Processing** | Process multiple queries efficiently | [`examples/advanced/batch_processing.py`](examples/advanced/batch_processing.py) |
 | **Multi-Loop Research** | Iterative research with refinement | [`examples/advanced/multi_loop_research.py`](examples/advanced/multi_loop_research.py) |
 | **Session Management** | Conversation tracking and persistence | [`examples/advanced/session_management.py`](examples/advanced/session_management.py) |
+| **Usage Tracking** | Tokens and Swarms/Exa cost attribution | [`examples/advanced/usage_tracking.py`](examples/advanced/usage_tracking.py) |
 | **Financial Research** | Domain demo for investment research | [`examples/use_cases/financial_example.py`](examples/use_cases/financial_example.py) |
 
 **Quick Start Examples:**
@@ -197,7 +199,7 @@ python examples/configuration/advanced_config.py
 | **Research rounds** | After each round the lead decides whether gaps would change the answer, and plans another round for just those gaps, up to `max_loops`. |
 | **Verified citations** | Every source gets one number shared by all agents. The citation agent checks each claim against the source text, and the references list is built from the sources the report actually cites. |
 | **Swarms API only** | Every agent is a `/v1/agent/completions` call with any model the API supports. No framework, no provider keys. |
-| **Cost tracking** | `research.total_cost` reports the run's Swarms API cost from each response's `usage.total_cost`. |
+| **Cost tracking** | `research.get_usage()` reports input/output tokens, Swarms cost, estimated Exa search cost, and a per-call breakdown. `research.total_cost` is their sum. |
 | **Export and output formats** | JSON export of the full session and its sources, and output as the final report, the full history, JSON or Markdown. |
 
 ## Architecture

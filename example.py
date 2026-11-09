@@ -17,3 +17,4 @@ result = research_system.run(
     "What are the latest and highest quality treatments for diabetes?"
 )
 print(json.dumps(result, indent=4))
+print(json.dumps(research_system.get_usage(), indent=4))

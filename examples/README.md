@@ -36,6 +36,7 @@ examples/
 | [`advanced/batch_processing.py`](advanced/batch_processing.py) | Process multiple queries in batch |
 | [`advanced/multi_loop_research.py`](advanced/multi_loop_research.py) | Iterative research with refinement |
 | [`advanced/session_management.py`](advanced/session_management.py) | Session tracking and conversation management |
+| [`advanced/usage_tracking.py`](advanced/usage_tracking.py) | Tokens and Swarms/Exa cost via `get_usage()` |
 
 ## Use Cases
 
@@ -53,6 +54,7 @@ python examples/basic/basic_usage.py
 python examples/basic/export_example.py
 python examples/configuration/advanced_config.py
 python examples/advanced/batch_processing.py
+python examples/advanced/usage_tracking.py
 python examples/use_cases/financial_example.py
 ```
 

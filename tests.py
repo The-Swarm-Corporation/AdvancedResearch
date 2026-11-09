@@ -16,6 +16,7 @@ from advanced_research.main import (
     _split_report,
     build_references,
     create_json_file,
+    estimate_exa_search_cost,
     execute_worker_search_agents,
     generate_id,
     run_agent,
@@ -118,15 +119,24 @@ def test_swarms_agent_sends_the_agent_config_and_reads_its_reply(
                     {"role": "Planner", "content": [{"tool": 1}]},
                     {"role": "Planner", "content": "the answer"},
                 ],
-                "usage": {"total_cost": 0.01},
+                "usage": {
+                    "input_tokens": 12,
+                    "output_tokens": 8,
+                    "total_tokens": 20,
+                    "total_cost": 0.01,
+                },
             },
         )
 
     monkeypatch.setattr(m.httpx, "post", fake_post)
-    text, cost = m.swarms_agent(
+    text, usage = m.swarms_agent(
         "Planner", "sys", "task", model_name="gpt-5.5", max_tokens=50
     )
-    assert (text, cost) == ("the answer", 0.01)
+    assert text == "the answer"
+    assert usage["input_tokens"] == 12
+    assert usage["output_tokens"] == 8
+    assert usage["total_tokens"] == 20
+    assert usage["total_cost"] == 0.01
     assert sent["url"].endswith("/v1/agent/completions")
     assert sent["headers"]["x-api-key"] == "sk-test"
     assert sent["body"]["agent_config"]["model_name"] == "gpt-5.5"
@@ -195,10 +205,13 @@ def test_exa_search_requests_text_and_parses_results(monkeypatch):
         )
 
     monkeypatch.setattr(m.httpx, "post", fake_post)
-    results = m.exa_search("query", num_results=3, max_characters=200)
+    results, usage = m.exa_search(
+        "query", num_results=3, max_characters=200
+    )
     assert sent["url"].endswith("/search")
     assert sent["headers"]["x-api-key"] == "exa-test"
     assert sent["body"]["numResults"] == 3
+    assert sent["body"]["type"] == "auto"
     assert sent["body"]["contents"]["text"]["maxCharacters"] == 200
     assert results == [
         {
@@ -209,6 +222,21 @@ def test_exa_search_requests_text_and_parses_results(monkeypatch):
             "highlights": ["h"],
         }
     ]
+    assert usage["total_cost"] == pytest.approx(
+        estimate_exa_search_cost(3, "auto")
+    )
+    assert usage["num_results_returned"] == 1
+
+
+def test_estimate_exa_search_cost_auto_and_extras():
+    assert estimate_exa_search_cost(5, "auto") == pytest.approx(0.007)
+    assert estimate_exa_search_cost(10, "auto") == pytest.approx(
+        0.007
+    )
+    assert estimate_exa_search_cost(20, "auto") == pytest.approx(
+        0.017
+    )
+    assert estimate_exa_search_cost(5, "lite") == pytest.approx(0.004)
 
 
 def test_subagent_runs_follow_up_searches_then_stops(monkeypatch):
@@ -240,7 +268,10 @@ def test_subagent_runs_follow_up_searches_then_stops(monkeypatch):
     assert searches == ["broad", "narrow"]
     assert result["findings"] == "full [1][2]"
     assert result["source_numbers"] == [1, 2]
-    assert result["cost"] == 1.0
+    # 2 Swarms calls at $0.5 + 2 Exa auto searches at $0.007
+    assert result["cost"] == pytest.approx(1.014)
+    assert result["usage"]["swarms_cost_usd"] == pytest.approx(1.0)
+    assert result["usage"]["exa_searches"] == 2
     assert "Search round 2 of 3" in prompts[1]
 
 
@@ -273,9 +304,9 @@ def fake_pipeline(monkeypatch, synthesis_replies):
         calls.append(agent_name)
         if "Lead Researcher in a multi-agent" in system_prompt:
             return (
-                '{"complexity": "comparison", "subtasks": ['
+                ('{"complexity": "comparison", "subtasks": ['
                 '{"objective": "o1", "search_queries": ["s1"]},'
-                '{"objective": "o2", "search_queries": ["s2"]}]}',
+                '{"objective": "o2", "search_queries": ["s2"]}]}'),
                 0.1,
             )
         if "Research Subagent" in system_prompt:
@@ -302,7 +333,15 @@ def test_run_returns_a_cited_report_with_references(monkeypatch):
     assert "https://s2" in references
     assert "[1]" in references and "[2]" in references
     assert "[7]" not in references
-    assert research.total_cost == pytest.approx(0.5)
+    usage = research.get_usage()
+    # plan + 2 workers + report + citations = 5 Swarms calls at $0.1
+    assert usage["swarms_cost_usd"] == pytest.approx(0.5)
+    assert usage["exa_searches"] == 2
+    assert usage["exa_cost_usd"] == pytest.approx(0.014)
+    assert research.total_cost == pytest.approx(0.514)
+    assert usage["total_cost_usd"] == research.total_cost
+    assert any(call["service"] == "exa" for call in usage["calls"])
+    assert any(call.get("stage") == "plan" for call in usage["calls"])
 
 
 def test_run_stops_when_the_lead_finds_no_gaps(monkeypatch):
