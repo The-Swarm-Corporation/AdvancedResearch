@@ -61,6 +61,28 @@ DEFAULT_EXA_SEARCH_MAX_CHARACTERS = 1500
 
 # The API gateway in front of api.swarms.world ends a request at 30 s.
 GATEWAY_TIMEOUT_SECONDS = 29.0
+_PRINT_LOCK = threading.Lock()
+
+
+def _emit_agent_output(
+    agent_name: str, content: Any, verbose: bool = False
+) -> None:
+    """Print an agent's output to the console when verbose is on.
+
+    Uses a lock so parallel subagents do not interleave their lines.
+    """
+    if not verbose:
+        return
+    if isinstance(content, (dict, list)):
+        body = json.dumps(content, indent=2, ensure_ascii=False)
+    else:
+        body = str(content).strip()
+    with _PRINT_LOCK:
+        print(
+            f"\n{'=' * 72}\n[{agent_name}]\n{'=' * 72}\n{body}\n",
+            flush=True,
+        )
+
 
 OUTPUT_TYPES = [
     "final",
@@ -390,6 +412,7 @@ def run_agent(
     query: Union[str, Dict[str, Any]],
     registry: Optional[SourceRegistry] = None,
     config: AdvancedResearchAdditionalConfig = schema,
+    verbose: bool = False,
 ) -> Dict[str, Any]:
     """Run one search subagent on its subtask.
 
@@ -405,6 +428,7 @@ def run_agent(
             search_queries, output_format and boundaries.
         registry: The run's shared source list. A new one is used if None.
         config: Subagent settings.
+        verbose: Print each agent reply to the console.
 
     Returns:
         A dict with the subagent's objective, findings, key_facts,
@@ -466,6 +490,11 @@ def run_agent(
             max_tokens=config.worker_max_tokens,
         )
         cost += call_cost
+        _emit_agent_output(
+            f"{agent_name} (search round {round_number})",
+            text,
+            verbose,
+        )
         parsed = _parse_json(text)
         findings = (
             parsed
@@ -501,6 +530,7 @@ def run_worker_agents(
     subtasks: List[Union[str, Dict[str, Any]]],
     registry: Optional[SourceRegistry] = None,
     config: AdvancedResearchAdditionalConfig = schema,
+    verbose: bool = False,
 ) -> List[Dict[str, Any]]:
     """Run one search subagent per subtask, all in parallel, and return
     their results in subtask order. A subagent that fails is reported in
@@ -510,7 +540,9 @@ def run_worker_agents(
     def run(item: Tuple[int, Union[str, Dict[str, Any]]]):
         index, subtask = item
         try:
-            return run_agent(index, subtask, registry, config)
+            return run_agent(
+                index, subtask, registry, config, verbose=verbose
+            )
         except ResearchAPIError as error:
             logger.warning(f"Subagent {index} failed: {error}")
             return {
@@ -739,6 +771,7 @@ class AdvancedResearch:
             when the report has no gaps worth another round.
         export_on: Save the session to examples/outputs/<id>.json.
         director_max_loops: Agent loops for each lead researcher call.
+        verbose: Print every agent reply to the console as it arrives.
         config: Subagent and search settings.
         conversation: The session's message history.
         sources: The registry of every source found.
@@ -759,6 +792,7 @@ class AdvancedResearch:
         export_on: bool = False,
         director_max_loops: int = 1,
         worker_max_tokens: int = DEFAULT_WORKER_MAX_TOKENS,
+        verbose: bool = False,
         config: Optional[AdvancedResearchAdditionalConfig] = None,
     ):
         if output_type not in OUTPUT_TYPES:
@@ -777,6 +811,7 @@ class AdvancedResearch:
         self.max_loops = max_loops
         self.export_on = export_on
         self.director_max_loops = director_max_loops
+        self.verbose = verbose
         self.config = (config or schema).model_copy(
             update={
                 "worker_model_name": worker_model_name,
@@ -794,7 +829,11 @@ class AdvancedResearch:
         self.total_cost = 0.0
 
     def _director(
-        self, system_prompt: str, task: str, max_tokens: int
+        self,
+        system_prompt: str,
+        task: str,
+        max_tokens: int,
+        stage: str = "director",
     ) -> str:
         text, cost = swarms_agent(
             agent_name=self.director_agent_name,
@@ -805,6 +844,11 @@ class AdvancedResearch:
             max_loops=self.director_max_loops,
         )
         self.total_cost += cost
+        _emit_agent_output(
+            f"{self.director_agent_name} ({stage})",
+            text,
+            self.verbose,
+        )
         return text
 
     def _plan(
@@ -832,6 +876,11 @@ class AdvancedResearch:
             max_subagents=self.config.max_subagents,
         )
         self.total_cost += cost
+        _emit_agent_output(
+            f"{self.director_agent_name} (plan)",
+            plan,
+            self.verbose,
+        )
         return plan
 
     def _synthesize(
@@ -863,6 +912,7 @@ class AdvancedResearch:
             f"Today's date: {_today()}\nOriginal query: {task}{previous}\n\nSubagent findings:\n\n"
             + "\n\n".join(findings),
             self.director_max_tokens,
+            stage="report",
         )
         return _split_report(text)
 
@@ -884,6 +934,7 @@ class AdvancedResearch:
                 get_citation_prompt(),
                 f"Report:\n\n{report}\n\nSource list:\n\n{self.sources.format(numbers)}",
                 self.director_max_tokens,
+                stage="citations",
             )
         except ResearchAPIError as error:
             logger.warning(
@@ -915,7 +966,10 @@ class AdvancedResearch:
         self.conversation.add(self.director_agent_name, plan)
 
         results = run_worker_agents(
-            plan["subtasks"], self.sources, self.config
+            plan["subtasks"],
+            self.sources,
+            self.config,
+            verbose=self.verbose,
         )
         for result in results:
             self.total_cost += result["cost"]
@@ -997,6 +1051,11 @@ class AdvancedResearch:
             else cited
         )
         self.conversation.add("Citation-Agent", final_report)
+        _emit_agent_output(
+            "Citation-Agent (final report)",
+            final_report,
+            self.verbose,
+        )
         logger.info(
             f"Research finished: {len(self.sources.sources)} sources, ${self.total_cost:.4f} Swarms API cost"
         )

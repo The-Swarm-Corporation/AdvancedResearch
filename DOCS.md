@@ -50,6 +50,7 @@ from advanced_research import AdvancedResearch
 | `max_loops` | `int` | `1` | Most research rounds. The lead stops early when the report has no gaps worth another round |
 | `export_on` | `bool` | `False` | Save the session to `examples/outputs/<id>.json` after each run |
 | `director_max_loops` | `int` | `1` | Agent loops for each lead researcher call |
+| `verbose` | `bool` | `False` | Print every agent reply (plan, search subagents, report, citations) to the console as it arrives |
 | `config` | `AdvancedResearchAdditionalConfig \| None` | module defaults | Subagent and search settings; see [AdvancedResearchAdditionalConfig](#advancedresearchadditionalconfig) |
 
 `output_type` must be one of the output types, or the constructor raises `ValueError`.

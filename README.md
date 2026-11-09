@@ -47,6 +47,7 @@ research_system = AdvancedResearch(
     director_max_tokens=4000,
     worker_max_tokens=3000,
     max_loops=1,
+    verbose=True,  # print every agent reply to the console
 )
 
 # Run research and get results
@@ -295,7 +296,7 @@ If you use this work in your research, please cite both the original paper and t
 
 @software{advancedresearch2025,
   title        = {AdvancedResearch: An Open-Source Multi-Agent Research System},
-  author       = {{The Swarm Corporation}},
+  author       = {Gomez, Kye and More, Harshal, The Swarms Corporation},
   year         = {2025},
   url          = {https://github.com/The-Swarm-Corporation/AdvancedResearch},
   note         = {Open-source implementation of Anthropic's multi-agent research system on the Swarms API and Exa}

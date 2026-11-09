@@ -49,6 +49,23 @@ def test_each_instance_gets_its_own_id():
     assert AdvancedResearch().id != AdvancedResearch().id
 
 
+def test_verbose_prints_agent_outputs(monkeypatch, capsys):
+    fake_pipeline(monkeypatch, ["Report [1]"])
+    AdvancedResearch(max_loops=1, verbose=True).run("query")
+    out = capsys.readouterr().out
+    assert "[Director-Agent (plan)]" in out
+    assert "[Worker-Search-Agent-1 (search round 1)]" in out
+    assert "[Director-Agent (report)]" in out
+    assert "[Director-Agent (citations)]" in out
+    assert "[Citation-Agent (final report)]" in out
+
+
+def test_verbose_off_is_silent(monkeypatch, capsys):
+    fake_pipeline(monkeypatch, ["Report [1]"])
+    AdvancedResearch(max_loops=1, verbose=False).run("query")
+    assert "[Director-Agent" not in capsys.readouterr().out
+
+
 def test_create_json_file_merges_into_existing_object(tmp_path):
     path = tmp_path / "out.json"
     create_json_file({"a": 1}, str(path))
@@ -231,7 +248,7 @@ def test_execute_worker_search_agents_returns_text(monkeypatch):
     monkeypatch.setattr(
         m,
         "run_agent",
-        lambda i, q, registry, config: {
+        lambda i, q, registry, config, verbose=False: {
             "objective": q,
             "findings": f"found {i}",
         },
