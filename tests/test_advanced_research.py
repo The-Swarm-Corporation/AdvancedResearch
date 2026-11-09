@@ -107,12 +107,12 @@ def test_swarms_agent_sends_the_agent_config_and_reads_its_reply(
 
     monkeypatch.setattr(m.httpx, "post", fake_post)
     text, cost = m.swarms_agent(
-        "Planner", "sys", "task", model_name="gpt-4.1", max_tokens=50
+        "Planner", "sys", "task", model_name="gpt-5.5", max_tokens=50
     )
     assert (text, cost) == ("the answer", 0.01)
     assert sent["url"].endswith("/v1/agent/completions")
     assert sent["headers"]["x-api-key"] == "sk-test"
-    assert sent["body"]["agent_config"]["model_name"] == "gpt-4.1"
+    assert sent["body"]["agent_config"]["model_name"] == "gpt-5.5"
     assert sent["body"]["agent_config"]["max_tokens"] == 50
 
 

@@ -16,7 +16,7 @@
 
 ## Overview
 
-AdvancedResearch implements the orchestrator-worker pattern from Anthropic's ["How we built our multi-agent research system"](https://www.anthropic.com/engineering/built-multi-agent-research-system) on two APIs:
+AdvancedResearch implements the orchestrator-worker pattern from Anthropic's ["How we built our multi-agent research system"](https://www.anthropic.com/research/multi-agent-research-system) on two APIs:
 
 - **Swarms API** (`https://api.swarms.world/v1/agent/completions`) runs every agent: the lead researcher, the search subagents and the citation agent.
 - **Exa** (`https://api.exa.ai/search`) is the web search the subagents use.
@@ -44,7 +44,7 @@ from advanced_research import AdvancedResearch
 | `worker_model_name` | `str` | `WORKER_MODEL_NAME` or `"gpt-5.4-mini"` | Swarms API model for the search subagents |
 | `worker_max_tokens` | `int` | `WORKER_MAX_TOKENS` or `3000` | Maximum output tokens per subagent call |
 | `director_agent_name` | `str` | `"Director-Agent"` | Name of the lead researcher |
-| `director_model_name` | `str` | `DIRECTOR_MODEL_NAME` or `"gpt-4.1"` | Swarms API model for planning, the report and the citation pass |
+| `director_model_name` | `str` | `DIRECTOR_MODEL_NAME` or `"gpt-5.5"` | Swarms API model for planning, the report and the citation pass |
 | `director_max_tokens` | `int` | `DIRECTOR_MAX_TOKENS` or `4000` | Maximum output tokens for the report and citation calls (planning uses at most 2000) |
 | `output_type` | `str` | `"final"` | What `run()` returns; see [Output types](#output-types) |
 | `max_loops` | `int` | `1` | Most research rounds. The lead stops early when the report has no gaps worth another round |
@@ -199,7 +199,7 @@ print(research.run("What are the latest developments in quantum error correction
 from advanced_research import AdvancedResearch, AdvancedResearchAdditionalConfig
 
 research = AdvancedResearch(
-    director_model_name="claude-sonnet-5-5",
+    director_model_name="claude-sonnet-5",
     max_loops=3,
     config=AdvancedResearchAdditionalConfig(
         worker_search_rounds=3,
@@ -248,7 +248,7 @@ SWARMS_API_KEY="..."   # https://swarms.world/platform/api-keys
 EXA_API_KEY="..."      # https://dashboard.exa.ai/api-keys
 
 # Optional (defaults shown)
-DIRECTOR_MODEL_NAME="gpt-4.1"
+DIRECTOR_MODEL_NAME="gpt-5.5"
 DIRECTOR_MAX_TOKENS=4000
 WORKER_MODEL_NAME="gpt-5.4-mini"
 WORKER_MAX_TOKENS=3000

@@ -16,8 +16,8 @@ def model_configurations():
     claude_system = AdvancedResearch(
         name="Claude Research Team",
         description="Research system using Claude models",
-        director_model_name="claude-sonnet-5-5",
-        worker_model_name="claude-sonnet-4-6",
+        director_model_name="claude-sonnet-5",
+        worker_model_name="claude-haiku-4-5",
         director_max_tokens=4000,
         worker_max_tokens=3000,
         max_loops=1,
@@ -31,8 +31,8 @@ def model_configurations():
     gpt_system = AdvancedResearch(
         name="GPT Research Team",
         description="Research system using GPT models",
-        director_model_name="gpt-4.1",
-        worker_model_name="gpt-4.1-mini",
+        director_model_name="gpt-5.5",
+        worker_model_name="gpt-5.4-mini",
         director_max_tokens=4000,
         worker_max_tokens=3000,
         max_loops=1,
@@ -46,8 +46,8 @@ def model_configurations():
     mixed_system = AdvancedResearch(
         name="Mixed Model Research Team",
         description="Research system using different models for director and workers",
-        director_model_name="claude-sonnet-5-5",
-        worker_model_name="gpt-4.1-mini",
+        director_model_name="claude-sonnet-5",
+        worker_model_name="gpt-5.4-mini",
         director_max_tokens=4000,
         worker_max_tokens=3000,
         max_loops=1,

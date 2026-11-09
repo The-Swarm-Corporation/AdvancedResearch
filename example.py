@@ -7,7 +7,7 @@ research_system = AdvancedResearch(
     description="A team of medical researchers who specialize in finding the best treatments for diabetes.",
     max_loops=1,
     output_type="dict",
-    director_model_name="gpt-4.1",
+    director_model_name="gpt-5.5",
     worker_model_name="gpt-5.4-mini",
 )
 
