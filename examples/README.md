@@ -1,108 +1,71 @@
 # Advanced Research Examples
 
-This directory contains comprehensive examples demonstrating how to use the Advanced Research system. All examples are designed to be simple and easy to understand, with no print statements.
+Examples are grouped by category. Each script is self-contained and runnable.
 
-## Available Examples
+## Layout
 
-### Basic Examples
+```
+examples/
+├── basic/             # Getting started
+├── configuration/     # Models, tokens, output formats
+├── advanced/          # Batch, multi-loop, sessions
+├── use_cases/         # Domain-specific demos
+└── outputs/           # JSON exports when export_on=True
+```
 
-- **[`basic_usage.py`](basic_usage.py)** - Simple research with minimal configuration
-- **[`export_example.py`](export_example.py)** - How to use export functionality
-- **[`chat_demo.py`](chat_demo.py)** - Interactive chat interface demo
+## Basic
 
-### Configuration Examples
+| Example | Description |
+|---------|-------------|
+| [`basic/basic_usage.py`](basic/basic_usage.py) | Simple research with minimal configuration |
+| [`basic/export_example.py`](basic/export_example.py) | Save research results to JSON |
+| [`basic/chat_demo.py`](basic/chat_demo.py) | Interactive chat interface demo |
 
-- **[`advanced_config.py`](advanced_config.py)** - Advanced configuration options
-- **[`custom_models.py`](custom_models.py)** - Different model configurations
-- **[`output_formats.py`](output_formats.py)** - Various output format options
+## Configuration
 
-### Advanced Features
+| Example | Description |
+|---------|-------------|
+| [`configuration/advanced_config.py`](configuration/advanced_config.py) | Custom models, tokens, and multiple loops |
+| [`configuration/custom_models.py`](configuration/custom_models.py) | Different director/worker model setups |
+| [`configuration/output_formats.py`](configuration/output_formats.py) | JSON, markdown, and conversation history |
 
-- **[`batch_processing.py`](batch_processing.py)** - Process multiple queries in batch
-- **[`multi_loop_research.py`](multi_loop_research.py)** - Iterative research with multiple loops
-- **[`session_management.py`](session_management.py)** - Session tracking and conversation management
+## Advanced
+
+| Example | Description |
+|---------|-------------|
+| [`advanced/batch_processing.py`](advanced/batch_processing.py) | Process multiple queries in batch |
+| [`advanced/multi_loop_research.py`](advanced/multi_loop_research.py) | Iterative research with refinement |
+| [`advanced/session_management.py`](advanced/session_management.py) | Session tracking and conversation management |
+
+## Use Cases
+
+| Example | Description |
+|---------|-------------|
+| [`use_cases/financial_example.py`](use_cases/financial_example.py) | Financial / investment research demo |
 
 ## Quick Start
 
-To run any example:
-
 ```bash
-# Basic research
-python examples/basic_usage.py
+# Prerequisites: pip install advanced-research
+# Set SWARMS_API_KEY and EXA_API_KEY in .env
 
-# With export functionality
-python examples/export_example.py
-
-# Advanced configuration
-python examples/advanced_config.py
+python examples/basic/basic_usage.py
+python examples/basic/export_example.py
+python examples/configuration/advanced_config.py
+python examples/advanced/batch_processing.py
+python examples/use_cases/financial_example.py
 ```
 
 ## Prerequisites
 
-Before running the examples, make sure you have:
-
 1. **Installed the package**: `pip install advanced-research`
-2. **Set up API keys** in environment variables:
-   - `SWARMS_API_KEY` (required: every agent runs on the Swarms API)
-   - `EXA_API_KEY` (required: web search)
-
-## Example Categories
-
-### **Basic Research**
-Start with `basic_usage.py` to understand the fundamental workflow.
-
-### **Export & Persistence**
-Use `export_example.py` to learn how to save research results to JSON files.
-
-### **Model Configuration**
-Explore `custom_models.py` to see how to configure different AI models.
-
-### **Output Formats**
-Check `output_formats.py` to understand JSON, markdown, and conversation history outputs.
-
-### **Batch Processing**
-Use `batch_processing.py` for processing multiple research tasks efficiently.
-
-### **Multi-Loop Research**
-Learn iterative research with `multi_loop_research.py`.
-
-### **Session Management**
-Understand conversation tracking with `session_management.py`.
-
-## Use Cases
-
-These examples cover common research scenarios:
-
-- **Academic Research** - Literature reviews and topic exploration
-- **Business Intelligence** - Market research and competitive analysis
-- **Technical Research** - Technology trends and implementation strategies
-- **Scientific Research** - Current developments and breakthroughs
-- **Content Creation** - Research for articles, reports, and presentations
-
-## Customization
-
-Each example can be customized by:
-
-- Changing the research query
-- Adjusting model parameters
-- Modifying output formats
-- Enabling/disabling export functionality
-- Adjusting the number of research loops
+2. **API keys** in the environment or `.env`:
+   - `SWARMS_API_KEY` — every agent runs on the Swarms API
+   - `EXA_API_KEY` — web search for the subagents
 
 ## Notes
 
-- All examples return results rather than printing them
-- Examples are designed to be run independently
-- Each example demonstrates a specific feature or use case
-- Results can be stored in variables for further processing
-- Export examples automatically save results to timestamped JSON files
-
-## Contributing
-
-Feel free to create additional examples or modify existing ones to suit your specific needs. Each example should:
-
-- Be self-contained and runnable
-- Demonstrate a clear use case
-- Use descriptive variable names
-- Include helpful comments
-- Return results instead of printing them
+- Examples are designed to run independently
+- Models and token limits are set on `AdvancedResearch(...)`, not via env vars
+- With `export_on=True`, results are written under `examples/outputs/`
+- Use `verbose=True` to print every agent reply to the console

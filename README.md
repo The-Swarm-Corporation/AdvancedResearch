@@ -162,26 +162,27 @@ Ready-to-run examples demonstrating all features of the Advanced Research system
 
 | Example | Description | File |
 |---------|-------------|------|
-| **Basic Usage** | Simple research with minimal configuration | [`examples/basic_usage.py`](examples/basic_usage.py) |
-| **Export Functionality** | Save research results to JSON files | [`examples/export_example.py`](examples/export_example.py) |
-| **Advanced Configuration** | Custom models, tokens, and multiple loops | [`examples/advanced_config.py`](examples/advanced_config.py) |
-| **Custom Models** | Different AI model configurations | [`examples/custom_models.py`](examples/custom_models.py) |
-| **Output Formats** | JSON, markdown, and conversation history | [`examples/output_formats.py`](examples/output_formats.py) |
-| **Batch Processing** | Process multiple queries efficiently | [`examples/batch_processing.py`](examples/batch_processing.py) |
-| **Multi-Loop Research** | Iterative research with refinement | [`examples/multi_loop_research.py`](examples/multi_loop_research.py) |
-| **Session Management** | Conversation tracking and persistence | [`examples/session_management.py`](examples/session_management.py) |
-| **Chat Interface** | Interactive web-based chat demo | [`examples/chat_demo.py`](examples/chat_demo.py) |
+| **Basic Usage** | Simple research with minimal configuration | [`examples/basic/basic_usage.py`](examples/basic/basic_usage.py) |
+| **Export Functionality** | Save research results to JSON files | [`examples/basic/export_example.py`](examples/basic/export_example.py) |
+| **Chat Interface** | Interactive web-based chat demo | [`examples/basic/chat_demo.py`](examples/basic/chat_demo.py) |
+| **Advanced Configuration** | Custom models, tokens, and multiple loops | [`examples/configuration/advanced_config.py`](examples/configuration/advanced_config.py) |
+| **Custom Models** | Different AI model configurations | [`examples/configuration/custom_models.py`](examples/configuration/custom_models.py) |
+| **Output Formats** | JSON, markdown, and conversation history | [`examples/configuration/output_formats.py`](examples/configuration/output_formats.py) |
+| **Batch Processing** | Process multiple queries efficiently | [`examples/advanced/batch_processing.py`](examples/advanced/batch_processing.py) |
+| **Multi-Loop Research** | Iterative research with refinement | [`examples/advanced/multi_loop_research.py`](examples/advanced/multi_loop_research.py) |
+| **Session Management** | Conversation tracking and persistence | [`examples/advanced/session_management.py`](examples/advanced/session_management.py) |
+| **Financial Research** | Domain demo for investment research | [`examples/use_cases/financial_example.py`](examples/use_cases/financial_example.py) |
 
 **Quick Start Examples:**
 ```bash
 # Basic research
-python examples/basic_usage.py
+python examples/basic/basic_usage.py
 
-# With export functionality  
-python examples/export_example.py
+# With export functionality
+python examples/basic/export_example.py
 
 # Advanced configuration
-python examples/advanced_config.py
+python examples/configuration/advanced_config.py
 ```
 
 **[View All Examples →](examples/README.md)**

@@ -4,7 +4,7 @@ build-backend = "poetry.core.masonry.api"
 
 [tool.poetry]
 name = "advanced-research"
-version = "0.3.0"
+version = "0.4.0"
 description = "Multi-agent web research on the Swarms API and Exa search: an implementation of Anthropic's orchestrator-worker research pattern"
 license = "MIT"
 authors = ["Kye Gomez <kye@swarms.world>"]
