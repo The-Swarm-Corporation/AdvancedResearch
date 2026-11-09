@@ -58,7 +58,7 @@ exa_search_num_results = int(os.getenv("EXA_SEARCH_NUM_RESULTS", 5))
 exa_search_max_characters = int(
     os.getenv("EXA_SEARCH_MAX_CHARACTERS", 1500)
 )
-director_model_name = os.getenv("DIRECTOR_MODEL_NAME", "gpt-4.1")
+director_model_name = os.getenv("DIRECTOR_MODEL_NAME", "gpt-5.5")
 director_max_tokens = int(os.getenv("DIRECTOR_MAX_TOKENS", 4000))
 
 # The API gateway in front of api.swarms.world ends a request at 30 s.

@@ -8,7 +8,7 @@
 [![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/release/python-3100/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-An implementation of the orchestrator-worker pattern from Anthropic's ["How we built our multi-agent research system"](https://www.anthropic.com/engineering/built-multi-agent-research-system), built entirely on the [Swarms API](https://docs.swarms.ai) and [Exa](https://exa.ai) search. A lead researcher plans the query, parallel search subagents research each part with Exa, the lead writes the report and decides whether gaps need another round, and a citation agent checks every claim against the sources.
+An implementation of the orchestrator-worker pattern from Anthropic's ["How we built our multi-agent research system"](https://www.anthropic.com/research/multi-agent-research-system), built entirely on the [Swarms API](https://docs.swarms.ai) and [Exa](https://exa.ai) search. A lead researcher plans the query, parallel search subagents research each part with Exa, the lead writes the report and decides whether gaps need another round, and a citation agent checks every claim against the sources.
 
 Every agent is one call to the Swarms API and every search is one call to Exa, so there is no agent framework or model-provider SDK to install: two API keys and `httpx`.
 
@@ -30,7 +30,7 @@ SWARMS_API_KEY="your_swarms_api_key_here"   # https://swarms.world/platform/api-
 EXA_API_KEY="your_exa_api_key_here"         # https://dashboard.exa.ai/api-keys
 
 # Optional (defaults shown)
-DIRECTOR_MODEL_NAME="gpt-4.1"        # lead researcher, report and citations
+DIRECTOR_MODEL_NAME="gpt-5.5"        # lead researcher, report and citations
 DIRECTOR_MAX_TOKENS=4000
 WORKER_MODEL_NAME="gpt-5.4-mini"     # search subagents
 WORKER_MAX_TOKENS=3000
@@ -90,7 +90,7 @@ from advanced_research import AdvancedResearch
 research_system = AdvancedResearch(
     name="Medical Research Team",
     description="Specialized medical research system",
-    director_model_name="claude-sonnet-5-5",  # any Swarms API model
+    director_model_name="claude-sonnet-5",  # any Swarms API model
     worker_model_name="gpt-5.4-mini",
     director_max_tokens=4000,
     max_loops=2,  # up to 2 research rounds; the lead stops early if there are no gaps
@@ -157,7 +157,7 @@ print(f"Available output formats: {available_formats}")
 | **Basic Research** | `AdvancedResearch().run("query")` | [Basic Usage →](DOCS.md#basic-research-setup) |
 | **Export Results** | `AdvancedResearch(export_on=True)` | [Export Config →](DOCS.md#configuration-examples) |
 | **Batch Processing** | `system.batched_run([queries])` | [Batch Processing →](DOCS.md#batch-processing-setup) |
-| **Custom Models** | `AdvancedResearch(director_model_name="claude-sonnet-5-5")` | [Advanced Config →](DOCS.md#advanced-multi-loop-research) |
+| **Custom Models** | `AdvancedResearch(director_model_name="claude-sonnet-5")` | [Advanced Config →](DOCS.md#advanced-multi-loop-research) |
 | **Output Formats** | `AdvancedResearch(output_type="json")` | [Output Types →](DOCS.md#types-and-enums) |
 
 ## Examples
@@ -287,27 +287,30 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
 If you use this work in your research, please cite both the original paper and this implementation:
 
 ```bibtex
-@misc{anthropic2024researchsystem,
-    title={How we built our multi-agent research system},
-    author={Anthropic},
-    year={2024},
-    month={June},
-    url={https://www.anthropic.com/engineering/built-multi-agent-research-system}
+@misc{hadfield2025multiagent,
+  title        = {How we built our multi-agent research system},
+  author       = {Hadfield, Jeremy and Zhang, Barry and Lien, Kenneth and Scholz, Florian and Fox, Jeremy and Ford, Daniel},
+  year         = {2025},
+  month        = jun,
+  day          = {13},
+  howpublished = {Anthropic Engineering Blog},
+  url          = {https://www.anthropic.com/research/multi-agent-research-system},
+  note         = {Describes Anthropic's orchestrator--worker multi-agent Research system}
 }
 
-@software{advancedresearch2024,
-    title={AdvancedResearch: Enhanced Multi-Agent Research System},
-    author={The Swarm Corporation},
-    year={2024},
-    url={https://github.com/The-Swarm-Corporation/AdvancedResearch},
-    note={Implementation based on Anthropic's multi-agent research system paper}
+@software{advancedresearch2025,
+  title        = {AdvancedResearch: An Open-Source Multi-Agent Research System},
+  author       = {{The Swarm Corporation}},
+  year         = {2025},
+  url          = {https://github.com/The-Swarm-Corporation/AdvancedResearch},
+  note         = {Open-source implementation of Anthropic's multi-agent research system on the Swarms API and Exa}
 }
 
 @software{swarms_framework,
-    title={Swarms: An Open-Source Multi-Agent Framework},
-    author={Kye Gomez},
-    year={2023},
-    url={https://github.com/kyegomez/swarms}
+  title        = {Swarms: An Open-Source Multi-Agent Framework},
+  author       = {Gomez, Kye},
+  year         = {2023},
+  url          = {https://github.com/kyegomez/swarms}
 }
 ```
 
@@ -319,7 +322,7 @@ For comprehensive API documentation, examples, and advanced usage:
 
 ## Related Work
 
-- [Original Paper](https://www.anthropic.com/engineering/built-multi-agent-research-system) - "How we built our multi-agent research system" by Anthropic
+- [Original Article](https://www.anthropic.com/research/multi-agent-research-system) - Hadfield et al., "How we built our multi-agent research system" (Anthropic, Jun 2025)
 - [Swarms API](https://docs.swarms.ai) - Runs every agent in this system
 - [Exa](https://exa.ai) - Web search for the search subagents
 
